@@ -8,7 +8,7 @@
 
 ## 🌟 What is Xend Network?
 
-Xend Network revolutionizes the $25.46B tokenized Real World Asset (RWA) market by providing the complete financial ecosystem that investors and consumer need. Unlike existing solutions that focus solely on tokenization, Xend Network combines advanced AI analytics with professional financial services to deliver:
+Xend Network revolutionizes Real World Asset (RWA) market by providing the complete financial ecosystem that investors and consumer need. Unlike existing solutions that focus solely on tokenization, Xend Network combines advanced AI analytics with professional financial services to deliver:
 
 **🤖 AI-Powered Intelligence**: Advanced algorithms continuously scan global markets, analyze thousands of real-world assets, and provide personalized investment recommendations with predictive modeling and sentiment analysis.
 
