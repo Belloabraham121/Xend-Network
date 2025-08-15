@@ -44,6 +44,31 @@ Xend Network consists of 10 specialized smart contracts working together to prov
 - **Regulatory Automation**: Automated compliance checks and reporting
 - **Market Making Support**: Professional liquidity provision services
 
+## 🤖 AI-Powered Investment Intelligence
+
+Xend Network leverages advanced artificial intelligence to analyze global asset markets and provide intelligent investment recommendations:
+
+### 🔍 Smart Asset Discovery
+
+- **Global Market Scanning**: AI continuously monitors thousands of real-world assets across different markets, sectors, and geographies
+- **Performance Analytics**: Real-time analysis of asset performance, volatility, and market trends
+- **Risk Assessment**: Automated risk scoring based on market conditions, asset fundamentals, and regulatory environment
+- **Opportunity Identification**: AI identifies undervalued assets and emerging investment opportunities
+
+### 📈 Intelligent Recommendations
+
+- **Personalized Suggestions**: AI analyzes your portfolio, risk tolerance, and investment goals to suggest optimal asset allocations
+- **Market Timing**: Advanced algorithms identify optimal entry and exit points based on market cycles and technical indicators
+- **Diversification Optimization**: AI recommends asset combinations to maximize returns while minimizing correlation risk
+- **Regulatory Compliance**: Automated screening ensures all recommendations comply with your jurisdiction's regulations
+
+### 🎯 Advanced Analytics Dashboard
+
+- **Predictive Modeling**: Machine learning models forecast asset performance and market trends
+- **Sentiment Analysis**: AI processes news, social media, and market data to gauge market sentiment
+- **Comparative Analysis**: Side-by-side comparison of similar assets with detailed performance metrics
+- **Portfolio Optimization**: Continuous AI-driven rebalancing suggestions to maintain optimal portfolio allocation
+
 ## 📊 Market Opportunity
 
 - **Current RWA Market**: $25.46B onchain value (August 2025)
@@ -126,86 +151,7 @@ Borrow against your RWA holdings with dynamic risk assessment and competitive ra
 
 Create and manage diversified RWA portfolios with automated rebalancing, risk scoring, and performance analytics. The system provides professional-grade portfolio optimization tools.
 
-## 🧪 Testing
 
-The project includes comprehensive tests covering all major functionality with multiple test categories:
-
-- **Unit Tests**: Individual contract functionality
-- **Integration Tests**: Cross-contract interactions
-- **Scenario Tests**: End-to-end user workflows
-- **Fuzz Tests**: Property-based testing with random inputs
-- **Invariant Tests**: System-wide invariant checking
-
-Our testing framework ensures robust security and reliability across all protocol components.
-
-## 🛡️ Security
-
-### Security Measures
-
-- **Multi-signature controls** for all admin functions
-- **Emergency pause mechanisms** across all contracts
-- **Reentrancy protection** on all external calls
-- **Access control** with role-based permissions
-- **Rate limiting** to prevent abuse
-- **Circuit breakers** for anomalous conditions
-
-### Audit Status
-
-- [ ] **Formal Audit**: Pending (Q4 2025)
-- [x] **Static Analysis**: Passed (Slither)
-- [x] **Test Coverage**: >95%
-- [ ] **Formal Verification**: In Progress
-
-### Bug Bounty
-
-We run a responsible disclosure program. Please report security vulnerabilities to security@xendnetwork.io.
-
-## 📚 Documentation
-
-### Developer Resources
-
-- [Smart Contract Documentation](./docs/contracts/)
-- [Integration Guide](./docs/integration.md)
-- [API Reference](./docs/api.md)
-- [Architecture Overview](./docs/architecture.md)
-
-### User Guides
-
-- [Asset Tokenization Guide](./docs/tokenization.md)
-- [Trading Guide](./docs/trading.md)
-- [Lending Guide](./docs/lending.md)
-- [Portfolio Management Guide](./docs/portfolio.md)
-
-## 🤝 Contributing
-
-We welcome contributions from the community! Please read our [Contributing Guidelines](CONTRIBUTING.md) before submitting pull requests.
-
-### Development Process
-
-1. **Fork** the repository
-2. **Create** a feature branch
-3. **Write** tests for your changes
-4. **Run** the test suite to ensure quality
-5. **Commit** your changes with descriptive messages
-6. **Push** to your feature branch
-7. **Open** a Pull Request with detailed description
-
-### Code Standards
-
-- Follow [Solidity Style Guide](https://docs.soliditylang.org/en/latest/style-guide.html)
-- Write comprehensive tests for new features
-- Document all public functions with NatSpec
-- Ensure gas optimization where possible
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🔗 Links
-
-- **Website**: https://xendnetwork.vercel.app/
-- **Pitch Deck**: [View Xend Network Pitch Deck](https://www.canva.com/design/DAGvXZsAatM/6V_g_Y3kann2kHqre3Um9Q/edit?utm_content=DAGvXZsAatM&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
-- ***
 
   **Built with ❤️ for the future of decentralized finance**
 
