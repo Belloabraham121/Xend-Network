@@ -17,23 +17,22 @@ export default function Hero() {
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-gray-700 bg-gray-900/50 backdrop-blur-sm">
               <div className="w-2 h-2 bg-green-500 rounded-full" />
               <span className="text-sm font-medium text-green-400">
-                Decentralized | RWA-Powered
+                AI-Powered | RWA Financial Ecosystem
               </span>
             </div>
 
             {/* Heading */}
             <div className="space-y-4">
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-tight">
-                Unlock the Power of Real-World Asset DeFi
+                AI-Powered RWA Financial Ecosystem
               </h1>
             </div>
 
             {/* Description */}
             <p className="text-lg md:text-xl text-gray-400 leading-relaxed max-w-lg">
-              Buy, Sell, Swap, Lend, and Borrow against tokenized real-world
-              assets. Xend Network provides secure, scalable, and decentralized
-              solutions for fractional ownership and comprehensive DeFi
-              opportunities on Mantle.
+              The world&apos;s first AI-powered comprehensive financial infrastructure for tokenized Real World Assets. 
+              Advanced algorithms provide intelligent investment recommendations while you buy, sell, swap, lend, 
+              and borrow against RWAs with institutional-grade trading and portfolio management.
             </p>
 
             {/* CTA Buttons */}

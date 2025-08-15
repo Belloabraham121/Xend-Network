@@ -1,18 +1,30 @@
-import { Grid3X3, Maximize2, Shield, ArrowLeftRight, Vault, Coins } from "lucide-react"
+import { Grid3X3, Maximize2, Shield, ArrowLeftRight, Vault, Coins, Brain, TrendingUp, Target } from "lucide-react"
 
 export default function Features() {
   const features = [
+    {
+      icon: Brain,
+      title: "AI-Powered Investment Intelligence",
+      description:
+        "Advanced algorithms continuously scan global markets, analyze thousands of real-world assets, and provide personalized investment recommendations with predictive modeling.",
+    },
+    {
+      icon: TrendingUp,
+      title: "Smart Asset Discovery & Analytics",
+      description:
+        "Real-time performance analysis, volatility tracking, and automated risk scoring based on market conditions, asset fundamentals, and regulatory environment.",
+    },
+    {
+      icon: Target,
+      title: "Intelligent Portfolio Optimization",
+      description:
+        "AI-driven opportunity identification, market timing algorithms for optimal entry/exit points, and continuous portfolio rebalancing suggestions.",
+    },
     {
       icon: Grid3X3,
       title: "Scalability for Global Assets",
       description:
         "Xend Network uses Mantle Network to support high-volume transactions, allowing you to buy, sell, and swap RWAs with speed and efficiency.",
-    },
-    {
-      icon: Maximize2,
-      title: "Decentralized Control & Liquidity",
-      description:
-        "Your assets, your rules. Xend Network ensures full control through transparent smart contracts and non-custodial DeFi mechanics.",
     },
     {
       icon: Shield,
@@ -21,22 +33,10 @@ export default function Features() {
         "KYC/AML-ready and audit-friendly. Xend Network aligns with institutional-grade compliance standards for regulated DeFi operations.",
     },
     {
-      icon: ArrowLeftRight,
-      title: "Swap Between Tokenized Assets",
-      description:
-        "Seamlessly swap between RWA classes—real estate, invoices, or commodities—via decentralized, low-slippage pools with fair pricing.",
-    },
-    {
       icon: Vault,
       title: "Unlock Liquidity Without Selling",
       description:
         "Use your RWAs as collateral to borrow funds or lend assets to earn yield—without needing to sell or exit your position.",
-    },
-    {
-      icon: Coins,
-      title: "Earn While You Hold",
-      description:
-        "Stake RWAs to earn in multiple tokens—stablecoins, native tokens, and more. Customize your yield strategy to suit your goals.",
     },
   ]
 
@@ -55,13 +55,13 @@ export default function Features() {
 
             {/* Title */}
             <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6">
-              Your Gateway to Comprehensive RWA DeFi
+              AI-Powered RWA Financial Infrastructure
             </h2>
 
             {/* Description */}
             <p className="text-lg md:text-xl text-gray-400 leading-relaxed max-w-2xl mx-auto">
-              Xend Network empowers you to buy, sell, swap, lend, borrow, and stake real-world assets—all through a
-              seamless, secure, and compliant DeFi interface.
+              Combining advanced AI analytics with professional financial services to deliver intelligent investment 
+              recommendations, automated portfolio management, and comprehensive DeFi opportunities for tokenized real-world assets.
             </p>
           </div>
 
