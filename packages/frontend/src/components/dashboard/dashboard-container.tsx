@@ -4,6 +4,7 @@ import { useState } from "react"
 import { DashboardSidebar } from "./layout/dashboard-sidebar"
 import { DashboardMain } from "./layout/dashboard-main"
 import { DashboardTab } from "./tabs/dashboard-tab"
+import { AIInsightsTab } from "./tabs/ai-insights-tab"
 import { BlendTab } from "./tabs/blend-tab"
 import { SwapTab } from "./tabs/swap-tab"
 import { BridgeTab } from "./tabs/bridge-tab"
@@ -22,6 +23,8 @@ export function DashboardContainer() {
     switch (activeTab) {
       case "dashboard":
         return <DashboardTab />
+      case "ai-insights":
+        return <AIInsightsTab />
       case "blend":
         return <BlendTab />
       case "swap":

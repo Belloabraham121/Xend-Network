@@ -1,53 +1,61 @@
-import { Waves, Sparkles, Zap, Plus, Target } from "lucide-react"
+import { Zap, Plus, Target, LucideIcon } from "lucide-react";
+import Image from "next/image";
 
 export default function Partners() {
-  const partners = [
+  const partners: Array<{
+    name: string;
+    // description: string;
+    type: "image" | "icon";
+    logo?: string;
+    icon?: LucideIcon;
+  }> = [
     {
-      name: "Logoipsum",
-      icon: Waves,
+      name: "Mantle Network",
+      logo: "https://www.mantle.xyz/logo-mantle-network.svg",
+      // description: "Layer 2 Blockchain",
+      type: "image",
     },
-    {
-      name: "Logoipsum",
-      icon: Sparkles,
-    },
-    {
-      name: "Logoipsum",
-      icon: Zap,
-    },
-    {
-      name: "Logoipsum",
-      icon: Plus,
-    },
-    {
-      name: "Logoipsum",
-      icon: Target,
-    },
-  ]
+  ];
 
   return (
     <section className="bg-black py-16 md:py-20">
       <div className="container mx-auto px-6 md:px-8 lg:px-12">
         {/* Section Title */}
         <div className="text-center mb-12">
-          <h2 className="text-lg md:text-xl text-gray-400 font-medium">Trusted by Leading Innovators</h2>
+          <h2 className="text-lg md:text-xl text-gray-400 font-medium">
+            Built on Mantle Network & Powered by Industry Leaders
+          </h2>
         </div>
 
         {/* Partners Grid */}
         <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12 lg:gap-16">
           {partners.map((partner, index) => {
-            const IconComponent = partner.icon
             return (
               <div
                 key={index}
-                className="flex items-center gap-3 text-gray-400 hover:text-gray-300 transition-colors duration-300"
+                className="flex flex-col items-center gap-2 text-gray-400 hover:text-gray-300 transition-colors duration-300 group"
               >
-                <IconComponent className="w-6 h-6 md:w-7 md:h-7" />
-                <span className="text-lg md:text-xl font-medium">{partner.name}</span>
+                <div className="flex items-center justify-center">
+                  {partner.type === "image" && partner.logo ? (
+                    <Image
+                      src={partner.logo}
+                      alt={`${partner.name} logo`}
+                      width={60}
+                      height={60}
+                      className="w-60 h-60 md:w-60 md:h-60 group-hover:opacity-80 transition-opacity"
+                    />
+                  ) : partner.icon ? (
+                    <partner.icon className="w-60 h-60 md:w-60 md:h-60 group-hover:text-green-400 transition-colors" />
+                  ) : null}
+                </div>
+                {/* <span className="text-sm text-gray-500 group-hover:text-gray-400 transition-colors">
+                  {partner.description}
+                </span> */}
               </div>
-            )
+            );
           })}
         </div>
       </div>
     </section>
-  )
+  );
 }

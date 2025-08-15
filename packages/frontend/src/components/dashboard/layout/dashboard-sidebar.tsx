@@ -12,6 +12,7 @@ import {
   Settings,
   LogOut,
   ChevronLeft,
+  Brain,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WalletCard } from "@/components/ui/wallet-card";
@@ -36,6 +37,7 @@ export function DashboardSidebar({
 }: DashboardSidebarProps) {
   const tabs: Tab[] = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "ai-insights", label: "AI Insights", icon: Brain },
     { id: "blend", label: "Blend", icon: Shuffle },
     { id: "swap", label: "Swap", icon: ArrowLeftRight },
     { id: "bridge", label: "Bridge", icon: Bridge },

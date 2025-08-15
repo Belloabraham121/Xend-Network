@@ -1,16 +1,16 @@
 export default function Statistics() {
   const stats = [
     {
-      number: "100M+",
-      label: "Tokenized Value (USD) - Buy/Sell/Swap/Lend/Borrow",
+      number: "$25.46B",
+      label: "Current RWA Market Value with +19.97% Growth",
     },
     {
-      number: "500K+",
-      label: "DeFi Transactions",
+      number: "342K+",
+      label: "RWA Holders Across 259 Asset Issuers",
     },
     {
-      number: "35+",
-      label: "Asset Classes",
+      number: "$50B",
+      label: "Projected Market Size by 2025",
     },
   ]
 
@@ -24,13 +24,13 @@ export default function Statistics() {
 
         {/* Heading */}
         <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
-          Maximize Your RWA Potential
+          Leading the AI-Powered RWA Revolution
         </h2>
 
         {/* Description */}
         <p className="text-lg md:text-xl text-gray-400 leading-relaxed max-w-4xl mx-auto mb-16">
-          Xend Network redefines real-world value through tokenization and DeFi—supporting everything from portfolio
-          diversification to on-demand liquidity.
+          Targeting the rapidly expanding tokenized asset market with AI-driven intelligence, 
+          professional financial services, and institutional-grade infrastructure for the future of RWA finance.
         </p>
 
         {/* Statistics */}
