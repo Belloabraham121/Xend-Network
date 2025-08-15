@@ -1,4 +1,4 @@
-# HedVault: The Complete RWA Financial Ecosystem
+# Xend Network: The Complete RWA Financial Ecosystem
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Solidity](https://img.shields.io/badge/Solidity-^0.8.20-blue)](https://docs.soliditylang.org/)
@@ -8,11 +8,11 @@
 
 ## 🌟 Overview
 
-HedVault is a modular DeFi protocol designed to bring professional financial services to the rapidly growing $25.46B tokenized Real World Asset (RWA) market. Unlike existing solutions that focus solely on tokenization, HedVault provides the complete financial ecosystem that RWA investors need.
+Xend Network is a modular DeFi protocol designed to bring professional financial services to the rapidly growing $25.46B tokenized Real World Asset (RWA) market. Unlike existing solutions that focus solely on tokenization, Xend Network provides the complete financial ecosystem that RWA investors need.
 
 ### 🏗️ Architecture
 
-HedVault consists of 10 specialized smart contracts working together to provide:
+Xend Network consists of 10 specialized smart contracts working together to provide:
 
 - **Asset Tokenization** - Compliant RWA token creation with metadata validation
 - **Professional Trading** - Advanced DEX and marketplace with institutional features
@@ -67,72 +67,25 @@ HedVault consists of 10 specialized smart contracts working together to provide:
 - **Security**: Static analysis with Slither, formal verification ready
 - **Documentation**: NatSpec comments throughout codebase
 
-### Supported Networks
-
-- Ethereum Mainnet (Primary)
-- Polygon (Layer 2 scaling)
-- Avalanche (Alternative L1)
-- Mantle (Enterprise focus)
-- _Additional chains via governance_
-
 ## 🏗️ Contract Architecture
 
 ### Core Contracts
 
-#### 1. **HedVaultCore** - Protocol Coordinator
+#### 1. **Xend NetworkCore** - Protocol Coordinator
 
-Central hub managing all protocol modules, fees, and governance.
-
-```solidity
-// Key functions
-function initialize(address[10] calldata _modules) external onlyOwner;
-function updateModule(string calldata moduleType, address newModule) external onlyOwner;
-function getProtocolFee(string calldata operation) external view returns (uint256);
-```
+Central hub managing all protocol modules, fees, and governance. Handles initialization of all system modules and manages protocol-wide settings.
 
 #### 2. **RWATokenFactory** - Asset Tokenization
 
-Creates compliant ERC20 tokens representing real-world assets.
-
-```solidity
-// Create new RWA token
-function createRWAToken(
-    DataTypes.RWAMetadata calldata metadata,
-    string calldata name,
-    string calldata symbol,
-    uint256 totalSupply
-) external payable returns (address tokenAddress);
-```
+Creates compliant ERC20 tokens representing real-world assets. Supports comprehensive metadata validation and regulatory compliance features.
 
 #### 3. **Marketplace** - Professional Trading
 
-Advanced DEX with order books, auctions, and institutional features.
-
-```solidity
-// Create trading order
-function createOrder(
-    address asset,
-    address paymentToken,
-    uint256 amount,
-    uint256 price,
-    uint8 orderType,
-    uint256 expiry
-) external returns (uint256 orderId);
-```
+Advanced DEX with order books, auctions, and institutional features. Provides sophisticated trading tools for professional asset management.
 
 #### 4. **LendingPool** - Collateralized Lending
 
-Dynamic lending protocol with RWA-specific risk models.
-
-```solidity
-// Create collateralized loan
-function createLoan(
-    address collateralToken,
-    address borrowToken,
-    uint256 collateralAmount,
-    uint256 borrowAmount
-) external returns (uint256 loanId);
-```
+Dynamic lending protocol with RWA-specific risk models. Enables borrowing against tokenized real-world assets with automated risk assessment.
 
 ### Supporting Contracts
 
@@ -145,213 +98,45 @@ function createLoan(
 
 ## 🚦 Getting Started
 
-### Prerequisites
+### Getting Started
 
-- Node.js 18+ and npm/yarn
-- [Foundry](https://getfoundry.sh/) installed
-- Git for version control
+Xend Network is designed to be accessible to both institutional and retail users. The protocol provides multiple interfaces for different user types:
 
-### Installation
+- **Web Application**: User-friendly interface for retail investors
+- **API Integration**: RESTful APIs for institutional integration
+- **Smart Contract Interface**: Direct blockchain interaction for developers
 
-1. **Clone the repository**
+For technical documentation and integration guides, please visit our developer portal.
 
-```bash
-git clone https://github.com/your-org/hedvault.git
-cd hedvault
-```
+## 💡 Key Use Cases
 
-2. **Install dependencies**
+### Asset Tokenization
 
-```bash
-# Install Foundry dependencies
-forge install
+Transform real-world assets into compliant digital tokens with comprehensive metadata, valuation data, and regulatory compliance built-in. The platform supports various asset types including real estate, commodities, and financial instruments.
 
-# Install Node.js dependencies (if using additional tooling)
-npm install
-```
+### Professional Trading
 
-3. **Set up environment**
+Access advanced trading features including order books, market making, and institutional-grade execution. The marketplace provides sophisticated tools for price discovery and liquidity management.
 
-```bash
-cp .env.example .env
-# Edit .env with your configuration
-```
+### Collateralized Lending
 
-### Local Development
-
-1. **Compile contracts**
-
-```bash
-forge build
-```
-
-2. **Run tests**
-
-```bash
-# Run all tests
-forge test
-
-# Run specific test with verbose output
-forge test --match-test "test_CreateRWAToken" -vvvv
-
-# Check test coverage
-forge coverage
-```
-
-3. **Start local network**
-
-```bash
-# Start Anvil (local Ethereum node)
-anvil
-
-# In another terminal, deploy contracts
-forge script script/Deploy.s.sol --rpc-url http://localhost:8545 --private-key $PRIVATE_KEY --broadcast
-```
-
-### Deployment
-
-#### Testnet Deployment
-
-```bash
-# Deploy to Sepolia
-forge script script/Deploy.s.sol \
-  --rpc-url $SEPOLIA_RPC_URL \
-  --private-key $PRIVATE_KEY \
-  --broadcast \
-  --verify
-
-# Deploy to Polygon Mumbai
-forge script script/Deploy.s.sol \
-  --rpc-url $MUMBAI_RPC_URL \
-  --private-key $PRIVATE_KEY \
-  --broadcast \
-  --verify
-```
-
-#### Mainnet Deployment
-
-```bash
-# Deploy to Ethereum Mainnet (use with caution)
-forge script script/Deploy.s.sol \
-  --rpc-url $MAINNET_RPC_URL \
-  --private-key $PRIVATE_KEY \
-  --broadcast \
-  --verify \
-  --slow
-```
-
-## 💡 Usage Examples
-
-### Creating an RWA Token
-
-```solidity
-// 1. Set up metadata
-DataTypes.RWAMetadata memory metadata = DataTypes.RWAMetadata({
-    assetType: "RealEstate",
-    location: "New York, NY",
-    valuation: 10000000 * 10**18, // $10M
-    lastValuationDate: block.timestamp,
-    certificationHash: "ipfs://Qm...",
-    isActive: true,
-    oracle: oracleAddress,
-    totalSupply: 10000 * 10**18, // 10,000 tokens
-    minInvestment: 1000 * 10**18 // $1,000 minimum
-});
-
-// 2. Create token (requires creation fee)
-address tokenAddress = rwaTokenFactory.createRWAToken{value: 100 * 10**18}(
-    metadata,
-    "Manhattan Office Building",
-    "MOB",
-    10000 * 10**18
-);
-```
-
-### Trading RWA Tokens
-
-```solidity
-// 1. Create sell order
-uint256 orderId = marketplace.createOrder(
-    rwaTokenAddress,
-    usdcAddress,
-    100 * 10**18,        // 100 tokens
-    1000 * 10**18,       // $1,000 per token
-    1,                   // SELL order
-    block.timestamp + 7 days
-);
-
-// 2. Execute market order
-marketplace.marketOrder(
-    rwaTokenAddress,
-    usdcAddress,
-    50 * 10**18,         // 50 tokens
-    0,                   // BUY order
-    500                  // 5% max slippage
-);
-```
-
-### Borrowing Against RWA
-
-```solidity
-// 1. Create collateralized loan
-uint256 loanId = lendingPool.createLoan(
-    rwaTokenAddress,     // Collateral token
-    usdcAddress,         // Borrow token
-    1000 * 10**18,       // 1,000 RWA tokens as collateral
-    500000 * 10**6       // Borrow $500,000 USDC
-);
-
-// 2. Repay loan
-lendingPool.repayLoan(loanId, 0); // 0 = full repayment
-```
+Borrow against your RWA holdings with dynamic risk assessment and competitive rates. The lending protocol automatically adjusts terms based on asset performance and market conditions.
 
 ### Portfolio Management
 
-```solidity
-// 1. Create portfolio
-uint256 portfolioId = portfolioManager.createPortfolio(
-    "Diversified RWA Portfolio",
-    5,      // Medium risk level
-    500     // 5% rebalance threshold
-);
-
-// 2. Add assets with target allocations
-portfolioManager.addAsset(
-    portfolioId,
-    rwaToken1,
-    1000 * 10**18,  // Amount
-    4000            // 40% target allocation
-);
-
-// 3. Rebalance portfolio
-portfolioManager.rebalancePortfolio(portfolioId);
-```
+Create and manage diversified RWA portfolios with automated rebalancing, risk scoring, and performance analytics. The system provides professional-grade portfolio optimization tools.
 
 ## 🧪 Testing
 
-The project includes comprehensive tests covering all major functionality:
-
-```bash
-# Run all tests
-forge test
-
-# Run tests with gas reporting
-forge test --gas-report
-
-# Run specific test file
-forge test --match-path test/Marketplace.t.sol
-
-# Run with coverage
-forge coverage --report lcov
-```
-
-### Test Categories
+The project includes comprehensive tests covering all major functionality with multiple test categories:
 
 - **Unit Tests**: Individual contract functionality
 - **Integration Tests**: Cross-contract interactions
 - **Scenario Tests**: End-to-end user workflows
 - **Fuzz Tests**: Property-based testing with random inputs
 - **Invariant Tests**: System-wide invariant checking
+
+Our testing framework ensures robust security and reliability across all protocol components.
 
 ## 🛡️ Security
 
@@ -373,7 +158,7 @@ forge coverage --report lcov
 
 ### Bug Bounty
 
-We run a responsible disclosure program. Please report security vulnerabilities to security@hedvault.io.
+We run a responsible disclosure program. Please report security vulnerabilities to security@xendnetwork.io.
 
 ## 📚 Documentation
 
@@ -398,12 +183,12 @@ We welcome contributions from the community! Please read our [Contributing Guide
 ### Development Process
 
 1. **Fork** the repository
-2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
+2. **Create** a feature branch
 3. **Write** tests for your changes
-4. **Run** the test suite (`forge test`)
-5. **Commit** your changes (`git commit -m 'Add amazing feature'`)
-6. **Push** to the branch (`git push origin feature/amazing-feature`)
-7. **Open** a Pull Request
+4. **Run** the test suite to ensure quality
+5. **Commit** your changes with descriptive messages
+6. **Push** to your feature branch
+7. **Open** a Pull Request with detailed description
 
 ### Code Standards
 
@@ -418,8 +203,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🔗 Links
 
-- **Website**: https://hedvault.vercel.app/
-- **Pitch Deck**: [View HedVault Pitch Deck](https://www.canva.com/design/DAGvXZsAatM/6V_g_Y3kann2kHqre3Um9Q/edit?utm_content=DAGvXZsAatM&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
+- **Website**: https://xendnetwork.vercel.app/
+- **Pitch Deck**: [View Xend Network Pitch Deck](https://www.canva.com/design/DAGvXZsAatM/6V_g_Y3kann2kHqre3Um9Q/edit?utm_content=DAGvXZsAatM&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
 - ***
 
   **Built with ❤️ for the future of decentralized finance**
