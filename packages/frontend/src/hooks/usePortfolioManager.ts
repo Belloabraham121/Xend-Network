@@ -1,4 +1,5 @@
 import { useReadContract, useWriteContract } from "wagmi";
+import { useQueryClient } from "@tanstack/react-query";
 import { Address } from "viem";
 import { CONTRACTS } from "@/config/contracts";
 import PortfolioManagerABI from "@/lib/abis/PortfolioManager.json";
@@ -8,6 +9,97 @@ import PortfolioManagerABI from "@/lib/abis/PortfolioManager.json";
  */
 export function usePortfolioManager() {
   const contractAddress = CONTRACTS.PortfolioManager as Address;
+  const queryClient = useQueryClient();
+
+  // Helper function to invalidate all portfolio-related queries
+  const invalidatePortfolioQueries = (userAddress?: Address) => {
+    // Invalidate all queries related to portfolio data
+    queryClient.invalidateQueries({ queryKey: ["readContract"] });
+
+    // If we have a specific user address, we could be more specific
+    if (userAddress) {
+      queryClient.invalidateQueries({
+        queryKey: [
+          "readContract",
+          {
+            address: contractAddress,
+            functionName: "getUserPortfolio",
+            args: [userAddress],
+          },
+        ],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [
+          "readContract",
+          {
+            address: contractAddress,
+            functionName: "getPortfolioValue",
+            args: [userAddress],
+          },
+        ],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [
+          "readContract",
+          {
+            address: contractAddress,
+            functionName: "getUserAssets",
+            args: [userAddress],
+          },
+        ],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [
+          "readContract",
+          {
+            address: contractAddress,
+            functionName: "getPortfolioPerformance",
+            args: [userAddress],
+          },
+        ],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [
+          "readContract",
+          {
+            address: contractAddress,
+            functionName: "getDiversificationScore",
+            args: [userAddress],
+          },
+        ],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [
+          "readContract",
+          {
+            address: contractAddress,
+            functionName: "getRiskScore",
+            args: [userAddress],
+          },
+        ],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [
+          "readContract",
+          {
+            address: contractAddress,
+            functionName: "getPerformanceHistory",
+            args: [userAddress],
+          },
+        ],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [
+          "readContract",
+          {
+            address: contractAddress,
+            functionName: "userHasPortfolio",
+            args: [userAddress],
+          },
+        ],
+      });
+    }
+  };
 
   // Read functions
   const useGetUserPortfolio = (user: Address) => {
@@ -82,30 +174,111 @@ export function usePortfolioManager() {
     });
   };
 
-  // Write contract hook
-  const { writeContract, isPending, error } = useWriteContract();
-
-  // Add asset to portfolio
-  const addAsset = (asset: Address, amount: bigint) => {
-    writeContract({
+  const useCalculateRiskScore = (user: Address) => {
+    return useReadContract({
       address: contractAddress,
       abi: PortfolioManagerABI,
-      functionName: "addAsset",
-      args: [asset, amount],
+      functionName: "calculateRiskScore",
+      args: [user],
     });
   };
 
-  // Remove asset from portfolio
-  const removeAsset = (asset: Address, amount: bigint) => {
-    writeContract({
+  const useUserHasPortfolio = (user: Address) => {
+    return useReadContract({
       address: contractAddress,
       abi: PortfolioManagerABI,
-      functionName: "removeAsset",
-      args: [asset, amount],
+      functionName: "userHasPortfolio",
+      args: [user],
     });
   };
 
-  // Rebalance portfolio
+  const useGetAssetAllocationByType = (user: Address) => {
+    return useReadContract({
+      address: contractAddress,
+      abi: PortfolioManagerABI,
+      functionName: "getAssetAllocation",
+      args: [user],
+    });
+  };
+
+  const useGetPerformanceHistory = (user: Address) => {
+    return useReadContract({
+      address: contractAddress,
+      abi: PortfolioManagerABI,
+      functionName: "getPerformanceHistory",
+      args: [user],
+    });
+  };
+
+  const useGetUserPositions = (user: Address) => {
+    return useReadContract({
+      address: contractAddress,
+      abi: PortfolioManagerABI,
+      functionName: "getUserPositions",
+      args: [user],
+    });
+  };
+
+  const useGetActivePositions = (user: Address) => {
+    return useReadContract({
+      address: contractAddress,
+      abi: PortfolioManagerABI,
+      functionName: "getActivePositions",
+      args: [user],
+    });
+  };
+
+  // Write contract hook with success callback
+  const { writeContract, isPending, error } = useWriteContract({
+    mutation: {
+      onSuccess: () => {
+        // Invalidate all portfolio queries when any write operation succeeds
+        invalidatePortfolioQueries();
+      },
+    },
+  });
+
+  // Add position to portfolio
+  const addPosition = (
+    user: Address,
+    asset: Address,
+    amount: bigint,
+    averagePrice: bigint
+  ) => {
+    writeContract({
+      address: contractAddress,
+      abi: PortfolioManagerABI,
+      functionName: "addPosition",
+      args: [user, asset, amount, averagePrice],
+    });
+  };
+
+  // Update position in portfolio
+  const updatePosition = (
+    user: Address,
+    asset: Address,
+    newAmount: bigint,
+    newAveragePrice: bigint
+  ) => {
+    writeContract({
+      address: contractAddress,
+      abi: PortfolioManagerABI,
+      functionName: "updatePosition",
+      args: [user, asset, newAmount, newAveragePrice],
+    });
+  };
+
+  // Remove position from portfolio
+  const removePosition = (user: Address, asset: Address) => {
+    writeContract({
+      address: contractAddress,
+      abi: PortfolioManagerABI,
+      functionName: "removePosition",
+      args: [user, asset],
+    });
+  };
+
+  // Rebalance portfolio (original function with target allocations)
   const rebalancePortfolio = (
     targetAllocations: Address[],
     targetPercentages: number[]
@@ -115,6 +288,16 @@ export function usePortfolioManager() {
       abi: PortfolioManagerABI,
       functionName: "rebalancePortfolio",
       args: [targetAllocations, targetPercentages],
+    });
+  };
+
+  // Rebalance portfolio for a specific user (from smart contract)
+  const rebalanceUserPortfolio = (user: Address) => {
+    writeContract({
+      address: contractAddress,
+      abi: PortfolioManagerABI,
+      functionName: "rebalancePortfolio",
+      args: [user],
     });
   };
 
@@ -157,6 +340,16 @@ export function usePortfolioManager() {
     });
   };
 
+  // Take performance snapshot
+  const takePerformanceSnapshot = (user: Address) => {
+    writeContract({
+      address: contractAddress,
+      abi: PortfolioManagerABI,
+      functionName: "takePerformanceSnapshot",
+      args: [user],
+    });
+  };
+
   return {
     // Read functions
     useGetUserPortfolio,
@@ -167,17 +360,29 @@ export function usePortfolioManager() {
     useGetPortfolioPerformance,
     useGetDiversificationScore,
     useGetRiskScore,
+    useCalculateRiskScore,
+    useUserHasPortfolio,
+    useGetAssetAllocationByType,
+    useGetPerformanceHistory,
+    useGetUserPositions,
+    useGetActivePositions,
 
     // Write functions
-    addAsset,
-    removeAsset,
+    addPosition,
+    updatePosition,
+    removePosition,
     rebalancePortfolio,
+    rebalanceUserPortfolio,
     setAllocationTarget,
     updateStrategy,
     executeRebalancing,
     setRiskTolerance,
+    takePerformanceSnapshot,
     isPending,
     error,
+
+    // Utility functions
+    invalidatePortfolioQueries,
 
     // Contract info
     contractAddress,

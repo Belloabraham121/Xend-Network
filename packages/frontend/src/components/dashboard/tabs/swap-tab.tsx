@@ -16,16 +16,40 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SwapInput } from "../ui/swap-input";
+// Token interface
+interface Token {
+  symbol: string;
+  address: string;
+  name: string;
+  type: string;
+  category?: string;
+}
+
 // Mock implementations to replace removed hooks
-const mockTokens = [
-  { symbol: "GOLD", address: "0x1234567890123456789012345678901234567890", name: "Gold Token" },
-  { symbol: "SILVER", address: "0x2345678901234567890123456789012345678901", name: "Silver Token" },
-  { symbol: "REALESTATE", address: "0x3456789012345678901234567890123456789012", name: "Real Estate Token" }
+const mockTokens: Token[] = [
+  {
+    symbol: "GOLD",
+    address: "0x1234567890123456789012345678901234567890",
+    name: "Gold Token",
+    type: "GOLD",
+  },
+  {
+    symbol: "SILVER",
+    address: "0x2345678901234567890123456789012345678901",
+    name: "Silver Token",
+    type: "SILVER",
+  },
+  {
+    symbol: "RE",
+    address: "0x3456789012345678901234567890123456789012",
+    name: "Real Estate Token",
+    type: "REALESTATE",
+  },
 ];
 
 const CONTRACT_ADDRESSES = {
   SwapEngine: "0x4567890123456789012345678901234567890123",
-  LendingPool: "0x5678901234567890123456789012345678901234"
+  LendingPool: "0x5678901234567890123456789012345678901234",
 };
 import { parseUnits, formatUnits, Address } from "viem";
 import { useAccount } from "wagmi";
@@ -55,15 +79,15 @@ export function SwapTab() {
   const [poolAmountB, setPoolAmountB] = useState("");
   const [poolFeeRate, setPoolFeeRate] = useState("300"); // 3% default
 
-  const tokens = mockTokens;
+  const tokens: Token[] = mockTokens;
   const { isConnected } = useAccount();
 
   // Filter tokens to show all available RWA tokens (HVGOLD, HVSILVER, HVRE)
-  const supportedTokens = tokens.filter(
+  const supportedTokens: Token[] = tokens.filter(
     (token) =>
-      token.symbol === "HVGOLD" ||
-      token.symbol === "HVSILVER" ||
-      token.symbol === "HVRE"
+      token.symbol === "GOLD" ||
+      token.symbol === "SILVER" ||
+      token.symbol === "RE"
   );
 
   // Log available tokens for debugging
@@ -111,19 +135,31 @@ export function SwapTab() {
 
   // Mock add supported token hook
   const addSupportedToken = (address: Address) => {
-    console.log('Mock: Adding token support for', address);
+    console.log("Mock: Adding token support for", address);
   };
   const isAddingToken = false;
   const tokenAdded = false;
 
   // Mock create pool hook
-  const createPool = (tokenA: Address, tokenB: Address, amountA: bigint, amountB: bigint, feeRate: bigint) => {
-    console.log('Mock: Creating pool', { tokenA, tokenB, amountA, amountB, feeRate });
+  const createPool = (
+    tokenA: Address,
+    tokenB: Address,
+    amountA: bigint,
+    amountB: bigint,
+    feeRate: bigint
+  ) => {
+    console.log("Mock: Creating pool", {
+      tokenA,
+      tokenB,
+      amountA,
+      amountB,
+      feeRate,
+    });
   };
   const isCreatingPool = false;
   const poolCreated = false;
-  const createPoolHash = '0x1234567890abcdef';
-  const createPoolError = null;
+  const createPoolHash = "0x1234567890abcdef";
+  const createPoolError: Error | null = null;
 
   // Types for pool data
   interface PoolData {
@@ -140,14 +176,6 @@ export function SwapTab() {
     poolId: string
   ) => {
     console.log("Mock: Pool data saved", { tokenA, tokenB, poolId });
-  };
-
-  const getPoolFromLocalStorage = (
-    tokenA: string,
-    tokenB: string
-  ): PoolData | undefined => {
-    console.log("Mock: Getting pool from storage", { tokenA, tokenB });
-    return undefined; // No pools in mock
   };
 
   // Log token support status
@@ -234,12 +262,12 @@ export function SwapTab() {
       console.log("🔓 Approving tokens for SwapEngine...");
 
       // Mock token approval - simulate successful approval
-      console.log('Mock: Token approvals simulated');
+      console.log("Mock: Token approvals simulated");
 
       // Mock token approvals
       console.log("✅ Token A approved (mock)");
       toast.success("✅ Token A approved successfully!");
-      
+
       console.log("✅ Token B approved (mock)");
       toast.success("✅ Token B approved successfully!");
 
@@ -280,9 +308,9 @@ export function SwapTab() {
       console.log("Mock: Pool creation logged", {
         tokenA: fromTokenAddress,
         tokenB: toTokenAddress,
-        poolId: estimatedPoolId
+        poolId: estimatedPoolId,
       });
-      
+
       toast.success(
         `🎉 Pool created successfully! Pool ID: ${estimatedPoolId.slice(
           0,
@@ -303,7 +331,8 @@ export function SwapTab() {
   useEffect(() => {
     if (createPoolError) {
       console.error("❌ Pool creation failed:", createPoolError);
-      const errorMessage = createPoolError.message || "Unknown error occurred";
+      const errorMessage =
+        (createPoolError as Error).message || "Unknown error occurred";
 
       if (errorMessage.includes("INSUFFICIENT_GAS")) {
         toast.error(
@@ -351,24 +380,23 @@ export function SwapTab() {
   ]);
 
   // Mock pool data
-  const poolData = null; // No pool exists initially
-  const poolError = null;
+  const poolData: bigint[] | null = null; // No pool exists initially
+  const poolError: Error | null = null;
   const poolLoading = false;
 
   // Mock pool data checking (localStorage removed)
-  const localPoolData = null; // No localStorage data
 
   // Use mock pool ID
   const knownPoolId = BigInt(
     "0xf91ed1b328aa7736110334f0687e7904734786118bac577039dd662f566f04e2"
   );
-  const poolId = poolData
-    ? (poolData as bigint)
-    : knownPoolId;
+  const poolId = poolData ? (poolData as bigint) : knownPoolId;
 
   // Log mock pool data
   useEffect(() => {
-    console.log("💾 Mock pool data (no localStorage):", { poolId: poolId.toString() });
+    console.log("💾 Mock pool data (no localStorage):", {
+      poolId: poolId.toString(),
+    });
   }, [poolId]);
 
   // Log pool data for debugging
@@ -385,9 +413,9 @@ export function SwapTab() {
       contractAddress: "0x4536b242ea3d3b5c412f5db159353b7ca6ed003e",
       errorDetails: poolError
         ? {
-            name: poolError.name,
-            message: poolError.message,
-            cause: poolError.cause,
+            name: (poolError as Error).name,
+            message: (poolError as Error).message,
+            cause: (poolError as Error & { cause?: unknown }).cause,
           }
         : null,
     });
@@ -397,19 +425,34 @@ export function SwapTab() {
     poolId: poolId.toString(),
     hasValidPool: poolId > BigInt(0),
     originalPoolData:
-      poolData && Array.isArray(poolData) && poolData.length > 0
-        ? poolData[0].toString()
+      poolData && Array.isArray(poolData) && (poolData as bigint[]).length > 0
+        ? (poolData[0] as bigint).toString()
         : "none",
     poolExists: poolId > BigInt(0),
   });
 
   // Mock swap quote data
-  const quoteData = debouncedFromValue ? {
-    amountOut: parseUnits((parseFloat(debouncedFromValue) * 0.98).toString(), 18), // 2% slippage
-    priceImpact: BigInt(200), // 2% price impact
-    fee: parseUnits((parseFloat(debouncedFromValue) * 0.003).toString(), 18) // 0.3% fee
-  } : null;
-  const quoteError = null;
+  interface QuoteData {
+    amountOut: bigint;
+    priceImpact: bigint;
+    fee: bigint;
+  }
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const quoteData: QuoteData | null = debouncedFromValue
+    ? {
+        amountOut: parseUnits(
+          (parseFloat(debouncedFromValue) * 0.98).toString(),
+          18
+        ), // 2% slippage
+        priceImpact: BigInt(200), // 2% price impact
+        fee: parseUnits(
+          (parseFloat(debouncedFromValue) * 0.003).toString(),
+          18
+        ), // 0.3% fee
+      }
+    : null;
+  const quoteError: Error | null = null;
 
   // Log quote data for debugging
   useEffect(() => {
@@ -437,9 +480,9 @@ export function SwapTab() {
       poolIdValid: poolId > BigInt(0),
       errorDetails: quoteError
         ? {
-            name: quoteError.name,
-            message: quoteError.message,
-            cause: quoteError.cause,
+            name: (quoteError as Error).name,
+            message: (quoteError as Error).message,
+            cause: (quoteError as Error & { cause?: unknown }).cause,
           }
         : null,
     });
@@ -485,27 +528,38 @@ export function SwapTab() {
 
   // Use swap hook
   // Mock swap hook
-  const swap = (poolId: string, tokenIn: Address, amountIn: bigint, minAmountOut: bigint) => {
-    console.log('Mock: Executing swap', { poolId, tokenIn, amountIn, minAmountOut });
+  const swap = (
+    poolId: bigint,
+    tokenIn: Address,
+    amountIn: bigint,
+    minAmountOut: bigint
+  ) => {
+    console.log("Mock: Executing swap", {
+      poolId: poolId.toString(),
+      tokenIn,
+      amountIn: amountIn.toString(),
+      minAmountOut: minAmountOut.toString(),
+    });
   };
   const isPending = false;
   const isConfirming = false;
   const isConfirmed = false;
-  const error = null;
-  const hash = '0xabcdef1234567890';
+  const error: Error | null = null;
+  const hash = "0xabcdef1234567890";
 
   // Mock token approval hooks
   const tokenApproval = {
     approve: (spender: Address, amount: bigint) => {
-      console.log('Mock: Approving token', { spender, amount });
+      console.log("Mock: Approving token", { spender, amount });
     },
     isPending: false,
     isConfirming: false,
-    isConfirmed: false
+    isConfirmed: false,
+    error: null as Error | null,
   };
   const tokenAllowance = {
     data: BigInt(0), // No allowance initially
-    refetch: () => Promise.resolve()
+    refetch: () => Promise.resolve(),
   };
 
   // Debug logging for token approval hooks
@@ -517,10 +571,17 @@ export function SwapTab() {
       tokenApprovalPending: tokenApproval.isPending,
       tokenApprovalConfirmed: tokenApproval.isConfirmed,
       tokenApprovalError: tokenApproval.error?.message,
-      hasApproveFunction: typeof tokenApproval.approve === 'function',
+      hasApproveFunction: typeof tokenApproval.approve === "function",
       approveFunction: tokenApproval.approve,
     });
-  }, [fromTokenAddress, tokenAllowance.data, tokenApproval.isPending, tokenApproval.isConfirmed, tokenApproval.error, tokenApproval.approve]);
+  }, [
+    fromTokenAddress,
+    tokenAllowance.data,
+    tokenApproval.isPending,
+    tokenApproval.isConfirmed,
+    tokenApproval.error,
+    tokenApproval.approve,
+  ]);
 
   // Approval state
   const [isApprovalInProgress, setIsApprovalInProgress] = useState(false);
@@ -614,7 +675,12 @@ export function SwapTab() {
       setIsApprovalInProgress(false);
       setPendingSwapAmount("");
     }
-  }, [tokenApproval.isConfirmed, tokenApproval.error, isApprovalInProgress, pendingSwapAmount]);
+  }, [
+    tokenApproval.isConfirmed,
+    tokenApproval.error,
+    isApprovalInProgress,
+    pendingSwapAmount,
+  ]);
 
   // Execute swap function
   const executeSwap = async (swapAmount: string) => {
@@ -623,7 +689,7 @@ export function SwapTab() {
       const amountIn = parseUnits(swapAmount, 18);
       // Use quote data if available, otherwise set minAmountOut to 0 (user accepts any amount)
       const minAmountOut = quoteData
-        ? ((quoteData as bigint) * BigInt(95)) / BigInt(100)
+        ? (quoteData.amountOut * BigInt(95)) / BigInt(100)
         : BigInt(0);
       const maxSlippage = parseUnits(slippage, 2); // Convert percentage to basis points
 
@@ -640,8 +706,7 @@ export function SwapTab() {
         poolId,
         fromTokenAddress as Address,
         amountIn,
-        minAmountOut,
-        maxSlippage
+        minAmountOut
       );
       console.log("📞 Swap function called, result:", swapResult);
 
@@ -688,38 +753,46 @@ export function SwapTab() {
         requiredAmount: amountIn.toString(),
         needsApproval: currentAllowance < amountIn,
         tokenAddress: fromTokenAddress,
-        spenderAddress: CONTRACT_ADDRESSES.SwapEngine
+        spenderAddress: CONTRACT_ADDRESSES.SwapEngine,
       });
 
       // Check if approval is needed
       if (currentAllowance < amountIn) {
         console.log("🔐 Token approval needed - triggering approval popup");
-        
+
         // Validate that we have the approve function and wallet is connected
         if (!isConnected) {
           toast.error("Please connect your wallet first");
           return;
         }
-        
-        if (typeof tokenApproval.approve !== 'function') {
-          console.error("❌ tokenApproval.approve is not a function:", tokenApproval.approve);
+
+        if (typeof tokenApproval.approve !== "function") {
+          console.error(
+            "❌ tokenApproval.approve is not a function:",
+            tokenApproval.approve
+          );
           toast.error("Token approval function is not available");
           return;
         }
-        
+
         console.log("📞 Initiating token approval...");
         console.log("Approval parameters:", {
           spender: CONTRACT_ADDRESSES.SwapEngine,
           amount: amountIn.toString(),
-          tokenAddress: fromTokenAddress
+          tokenAddress: fromTokenAddress,
         });
-        
+
         setIsApprovalInProgress(true);
         setPendingSwapAmount(fromValue);
-        
+
         // Request approval for the swap amount (following blend-tab pattern)
-        tokenApproval.approve(CONTRACT_ADDRESSES.SwapEngine, amountIn);
-        toast.info("Please sign the token approval transaction in your wallet.");
+        tokenApproval.approve(
+          CONTRACT_ADDRESSES.SwapEngine as `0x${string}`,
+          amountIn
+        );
+        toast.info(
+          "Please sign the token approval transaction in your wallet."
+        );
       } else {
         console.log("✅ Token already approved, executing swap directly");
         executeSwap(fromValue);
@@ -730,7 +803,9 @@ export function SwapTab() {
         message: (err as Error)?.message,
         stack: (err as Error)?.stack,
       });
-      toast.error(`Failed to prepare swap transaction: ${(err as Error)?.message}`);
+      toast.error(
+        `Failed to prepare swap transaction: ${(err as Error)?.message}`
+      );
     }
   };
 
@@ -1160,7 +1235,7 @@ export function SwapTab() {
                   fromTokenAddress,
                   toTokenAddress,
                   isConnected,
-                  buttonDisabled: !canSwap || isLoading
+                  buttonDisabled: !canSwap || isLoading,
                 });
                 if (canSwap && !isLoading) {
                   handleSwap();
@@ -1193,7 +1268,7 @@ export function SwapTab() {
         <CardHeader>
           <CardTitle className="text-white">Supported RWA Tokens</CardTitle>
           <p className="text-gray-400">
-            💰 HVGOLD and 💰 HVSILVER tokens available for swapping
+            💰 GOLD and 💰 SILVER tokens available for swapping
           </p>
         </CardHeader>
         <CardContent>
@@ -1225,7 +1300,9 @@ export function SwapTab() {
                   <h4 className="font-semibold text-white mb-1">
                     {token.symbol}
                   </h4>
-                  <p className="text-xs text-gray-400">{token.category}</p>
+                  <p className="text-xs text-gray-400">
+                    {token.category || "RWA"}
+                  </p>
                   <div className="text-xs text-gray-500 mt-2 font-mono">
                     {token.address.slice(0, 6)}...{token.address.slice(-4)}
                   </div>

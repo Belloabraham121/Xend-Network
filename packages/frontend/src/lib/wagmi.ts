@@ -18,7 +18,9 @@ const mantleTestnet = defineChain({
   },
   rpcUrls: {
     default: {
-      http: ["https://rpc.sepolia.mantle.xyz"],
+      http: [
+        "https://mantle-sepolia.g.alchemy.com/v2/cpenwKf_vUc59UKfsx5FUumCtZ_bSU_W",
+      ],
     },
   },
   blockExplorers: {

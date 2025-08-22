@@ -1,44 +1,47 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { DashboardSidebar } from "./layout/dashboard-sidebar"
-import { DashboardMain } from "./layout/dashboard-main"
-import { DashboardTab } from "./tabs/dashboard-tab"
-import { AIInsightsTab } from "./tabs/ai-insights-tab"
-import { BlendTab } from "./tabs/blend-tab"
-import { SwapTab } from "./tabs/swap-tab"
-import { BridgeTab } from "./tabs/bridge-tab"
-import { BuySellTab } from "./tabs/buysell-tab"
-import { RewardsTab } from "./tabs/rewards-tab"
+import { useState } from "react";
+import { DashboardSidebar } from "./layout/dashboard-sidebar";
+import { DashboardMain } from "./layout/dashboard-main";
+import { DashboardTab } from "./tabs/dashboard-tab";
+import { AIInsightsTab } from "./tabs/ai-insights-tab";
+import { BlendTab } from "./tabs/blend-tab";
+import { SwapTab } from "./tabs/swap-tab";
+import { BridgeTab } from "./tabs/bridge-tab";
+import { BuySellTab } from "./tabs/buysell-tab";
+import { RewardsTab } from "./tabs/rewards-tab";
+import { PortfolioTab } from "./tabs/portfolio-tab";
 
 export function DashboardContainer() {
-  const [activeTab, setActiveTab] = useState("dashboard")
-  const [isCollapsed, setIsCollapsed] = useState(false)
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const handleToggleCollapse = () => {
-    setIsCollapsed(!isCollapsed)
-  }
+    setIsCollapsed(!isCollapsed);
+  };
 
   const renderTabContent = () => {
     switch (activeTab) {
       case "dashboard":
-        return <DashboardTab />
+        return <DashboardTab />;
       case "ai-insights":
-        return <AIInsightsTab />
+        return <AIInsightsTab />;
       case "blend":
-        return <BlendTab />
+        return <BlendTab />;
       case "swap":
-        return <SwapTab />
+        return <SwapTab />;
       case "bridge":
-        return <BridgeTab />
+        return <BridgeTab />;
       case "buysell":
-        return <BuySellTab />
+        return <BuySellTab />;
       case "rewards":
-        return <RewardsTab />
+        return <RewardsTab />;
+      case "portfolio":
+        return <PortfolioTab />;
       default:
-        return <DashboardTab />
+        return <DashboardTab />;
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-black text-white flex">
@@ -50,5 +53,5 @@ export function DashboardContainer() {
       />
       <DashboardMain activeTab={activeTab}>{renderTabContent()}</DashboardMain>
     </div>
-  )
+  );
 }

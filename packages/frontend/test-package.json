@@ -1,0 +1,14 @@
+{
+  "name": "lending-pool-test",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Node.js script to test LendingPool deposits",
+  "main": "deposit-test.mjs",
+  "scripts": {
+    "test-deposit": "node deposit-test.mjs",
+    "install-deps": "npm install ethers"
+  },
+  "dependencies": {
+    "ethers": "^6.8.0"
+  }
+}

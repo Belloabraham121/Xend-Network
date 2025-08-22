@@ -25,13 +25,10 @@ contract CreateRewardAssets is Script {
     }
 
     function run() external {
-        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        address deployer = vm.addr(deployerPrivateKey);
-
-        console.log("Creating reward assets with deployer:", deployer);
+        console.log("Creating reward assets with deployer:", msg.sender);
         console.log("RewardAssetFactory address:", REWARD_ASSET_FACTORY);
 
-        vm.startBroadcast(deployerPrivateKey);
+        vm.startBroadcast();
 
         RewardAssetFactory factory = RewardAssetFactory(REWARD_ASSET_FACTORY);
 
