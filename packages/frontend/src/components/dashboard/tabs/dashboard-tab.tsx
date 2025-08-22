@@ -8,6 +8,7 @@ import { PortfolioCard } from "../ui/portfolio-card";
 import { TransactionItem } from "../ui/transaction-item";
 import { PredefinedRWATokens } from "../ui/predefined-rwa-tokens";
 import { useAccount } from "wagmi";
+import { usePortfolioManager } from "@/hooks/usePortfolioManager";
 
 // Helper function to replace formatEther
 const formatEther = (value: bigint): string => {
@@ -126,6 +127,14 @@ function TokenBalanceRow({ tokenAddress, assetInfo, userAddress, showBalance }: 
 export function DashboardTab() {
   const [showBalance, setShowBalance] = useState(true);
   const { address: userAddress } = useAccount();
+  const portfolioManager = usePortfolioManager();
+
+  // Get portfolio data from smart contract
+  const { data: userPortfolio } = portfolioManager.useGetUserPortfolio(userAddress || "0x0000000000000000000000000000000000000000");
+  const { data: portfolioValue } = portfolioManager.useGetPortfolioValue(userAddress || "0x0000000000000000000000000000000000000000");
+  const { data: userAssets } = portfolioManager.useGetUserAssets(userAddress || "0x0000000000000000000000000000000000000000");
+  const { data: riskScore } = portfolioManager.useGetRiskScore(userAddress || "0x0000000000000000000000000000000000000000");
+  const { data: diversificationScore } = portfolioManager.useGetDiversificationScore(userAddress || "0x0000000000000000000000000000000000000000");
 
   // Mock factory tokens data
   const tokenAddresses: `0x${string}`[] = [];
@@ -141,32 +150,34 @@ export function DashboardTab() {
     return Number(value) / 1e18;
   };
 
-  // Calculate total portfolio value from user's actual token holdings
+  // Calculate total portfolio value from smart contract data
   const calculateUserPortfolioValue = () => {
-    let totalValue = 0;
+    // Use smart contract portfolio value if available
+    if (portfolioValue && userAddress && typeof portfolioValue === 'bigint') {
+      return Number(formatEther(portfolioValue));
+    }
     
-    // Add predefined token values (assuming $1 per token for now)
-    const goldValue = goldBalance.data ? Number(formatEther(goldBalance.data)) * 2000 : 0; // $2000 per gold token
-    const silverValue = silverBalance.data ? Number(formatEther(silverBalance.data)) * 25 : 0; // $25 per silver token  
-    const realEstateValue = realEstateBalance.data ? Number(formatEther(realEstateBalance.data)) * 500 : 0; // $500 per RE token
+    // Fallback to mock calculation for predefined tokens
+    let totalValue = 0;
+    const goldValue = goldBalance.data ? Number(formatEther(goldBalance.data)) * 2000 : 0;
+    const silverValue = silverBalance.data ? Number(formatEther(silverBalance.data)) * 25 : 0;
+    const realEstateValue = realEstateBalance.data ? Number(formatEther(realEstateBalance.data)) * 500 : 0;
     
     totalValue += goldValue + silverValue + realEstateValue;
-    
-    // Add factory-created token values
-    tokenAddresses.forEach((address: `0x${string}`, index: number) => {
-      const info = assetInfos[index];
-      if (!info) return;
-      
-      const tokenValue = formatCurrency(info.metadata.valuation);
-      const pricePerToken = tokenValue / Number(formatEther(info.metadata.totalSupply));
-      // We would need individual balance hooks for each token to calculate actual value
-    });
-    
     return totalValue;
   };
 
   const totalValue = calculateUserPortfolioValue();
-  const totalTokenCount = tokenAddresses.length + (goldBalance.data && goldBalance.data > 0 ? 1 : 0) + (silverBalance.data && silverBalance.data > 0 ? 1 : 0) + (realEstateBalance.data && realEstateBalance.data > 0 ? 1 : 0);
+  const totalTokenCount = (Array.isArray(userAssets) ? userAssets.length : 0) || (tokenAddresses.length + (goldBalance.data && goldBalance.data > 0 ? 1 : 0) + (silverBalance.data && silverBalance.data > 0 ? 1 : 0) + (realEstateBalance.data && realEstateBalance.data > 0 ? 1 : 0));
+  
+  // Get risk level based on risk score
+  const getRiskLevel = (score?: bigint | number) => {
+    if (!score) return "Unknown";
+    const numScore = typeof score === 'bigint' ? Number(score) : score;
+    if (numScore <= 30) return "Low";
+    if (numScore <= 70) return "Medium";
+    return "High";
+  };
 
   // Mock transactions for now - can be enhanced with real data later
   const recentTransactions = [
@@ -203,7 +214,7 @@ export function DashboardTab() {
   return (
     <div className="space-y-8">
       {/* Portfolio Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <PortfolioCard
            title="Total Portfolio Value"
            value={showBalance ? `$${formatLargeNumber(totalValue)}` : "••••••"}
@@ -233,11 +244,18 @@ export function DashboardTab() {
         />
 
         <PortfolioCard
-          title="Monthly Rewards"
-          value="$0"
-          change="Coming soon"
-          changeType="positive"
-        />
+            title="Risk Level"
+            value={getRiskLevel(riskScore as bigint | number)}
+            change={riskScore ? `Score: ${Number(riskScore)}` : "N/A"}
+            changeType={getRiskLevel(riskScore as bigint | number) === "Low" ? "positive" : "negative"}
+          />
+
+          <PortfolioCard
+            title="Diversification"
+            value={diversificationScore ? `${Number(diversificationScore)}%` : "N/A"}
+            change="Portfolio spread"
+            changeType={diversificationScore ? (Number(diversificationScore) > 50 ? "positive" : "negative") : "positive"}
+          />
       </div>
 
       {/* Quick Actions */}

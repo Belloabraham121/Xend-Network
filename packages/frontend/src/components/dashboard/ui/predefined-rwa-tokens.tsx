@@ -3,7 +3,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, MapPin, DollarSign, Coins } from "lucide-react";
-import { RWA_TOKEN_ADDRESSES, getRWATokenAddress, type RWATokenType } from "@/config/rwaTokenFactory";
+
+type RWATokenType = "GOLD" | "SILVER" | "REAL_ESTATE";
 
 interface PredefinedToken {
   type: RWATokenType;
@@ -14,6 +15,16 @@ interface PredefinedToken {
   estimatedValue: string;
   icon: string;
 }
+
+// Mock function to get token addresses
+const getRWATokenAddress = (tokenType: RWATokenType): string => {
+  const addresses = {
+    GOLD: "0x1234567890123456789012345678901234567890",
+    SILVER: "0x2345678901234567890123456789012345678901",
+    REAL_ESTATE: "0x3456789012345678901234567890123456789012"
+  };
+  return addresses[tokenType];
+};
 
 const PREDEFINED_TOKENS: PredefinedToken[] = [
   {
