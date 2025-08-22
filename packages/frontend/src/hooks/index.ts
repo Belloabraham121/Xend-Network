@@ -4,7 +4,6 @@
 // Core hooks that should work
 export * from "./useRewardAssetFactory";
 export * from "./useRWATokenFactoryTokens";
-export * from "./useComplianceManager";
 
 // Additional hooks - uncomment when ABIs are properly configured
 // export * from './useChainlinkPriceOracle';
