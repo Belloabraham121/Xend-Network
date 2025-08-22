@@ -7,11 +7,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PortfolioCard } from "../ui/portfolio-card";
 import { TransactionItem } from "../ui/transaction-item";
 import { PredefinedRWATokens } from "../ui/predefined-rwa-tokens";
-import { useRWATokenFactoryTokens } from "@/hooks/useRWATokenFactoryTokens";
-import { useTokenBalance } from "@/hooks/contracts/useLendingPool";
 import { useAccount } from "wagmi";
-import { formatEther } from "viem";
-import { ALL_RWA_TOKEN_ADDRESSES, RWA_TOKEN_ADDRESSES, type RWATokenType } from "@/config/rwaTokenFactory";
+
+// Helper function to replace formatEther
+const formatEther = (value: bigint): string => {
+  return (Number(value) / 1e18).toString();
+};
+
+// Mock RWA token addresses
+const RWA_TOKEN_ADDRESSES = {
+  GOLD: "0x1111111111111111111111111111111111111111" as `0x${string}`,
+  SILVER: "0x2222222222222222222222222222222222222222" as `0x${string}`,
+  REAL_ESTATE: "0x3333333333333333333333333333333333333333" as `0x${string}`,
+};
 
 // Format large numbers with abbreviations and commas
 const formatLargeNumber = (num: number) => {
@@ -58,7 +66,8 @@ interface TokenBalanceRowProps {
 }
 
 function TokenBalanceRow({ tokenAddress, assetInfo, userAddress, showBalance }: TokenBalanceRowProps) {
-  const tokenBalance = useTokenBalance(tokenAddress);
+  // Mock token balance
+  const tokenBalance = { data: BigInt("1000000000000000000000"), isLoading: false };
   
   const formatCurrency = (value: bigint) => {
     return Number(value) / 1e18;
@@ -116,19 +125,16 @@ function TokenBalanceRow({ tokenAddress, assetInfo, userAddress, showBalance }: 
 
 export function DashboardTab() {
   const [showBalance, setShowBalance] = useState(true);
-  const { allTokensWithInfo } = useRWATokenFactoryTokens();
   const { address: userAddress } = useAccount();
 
-  const tokensData = allTokensWithInfo.data || [[], []];
-  const [tokenAddresses, assetInfos] = [
-    Array.from(tokensData[0] || []),
-    Array.from(tokensData[1] || [])
-  ];
+  // Mock factory tokens data
+  const tokenAddresses: `0x${string}`[] = [];
+  const assetInfos: AssetInfo[] = [];
 
-  // Get balances for predefined RWA tokens
-  const goldBalance = useTokenBalance(RWA_TOKEN_ADDRESSES.GOLD as `0x${string}`);
-  const silverBalance = useTokenBalance(RWA_TOKEN_ADDRESSES.SILVER as `0x${string}`);
-  const realEstateBalance = useTokenBalance(RWA_TOKEN_ADDRESSES.REAL_ESTATE as `0x${string}`);
+  // Mock balances for predefined RWA tokens
+  const goldBalance = { data: BigInt("5000000000000000000"), isLoading: false }; // 5 GOLD tokens
+  const silverBalance = { data: BigInt("100000000000000000000"), isLoading: false }; // 100 SILVER tokens
+  const realEstateBalance = { data: BigInt("2000000000000000000"), isLoading: false }; // 2 RE tokens
 
   // Format currency helper function
   const formatCurrency = (value: bigint) => {
