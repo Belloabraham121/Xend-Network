@@ -250,21 +250,6 @@ export function PredefinedRWATokens({ className }: PredefinedRWATokensProps) {
             </tbody>
           </table>
         </div>
-
-        <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-          <div className="flex items-start gap-3">
-            <div className="text-blue-400 text-lg">ℹ️</div>
-            <div>
-              <h5 className="text-blue-400 font-medium mb-1">
-                Live Asset Data
-              </h5>
-              <p className="text-sm text-blue-300/80">
-                Asset information is fetched live from the RewardAssetFactory
-                contract using deployed addresses.
-              </p>
-            </div>
-          </div>
-        </div>
       </CardContent>
     </Card>
   );

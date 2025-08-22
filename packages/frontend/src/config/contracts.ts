@@ -11,7 +11,7 @@ export const BLOCK_EXPLORER_URL = "https://explorer.sepolia.mantle.xyz";
 export const CONTRACTS = {
   ChainlinkPriceOracle: "0x8f1e22c51544dc4d66571d64f6dd01cb426d651f" as const,
   RewardAssetFactory: "0xae4e89df546994bde296bc2cc2d949961cb7a123" as const,
-  PortfolioManager: "0xeeb4fa2f7701029048025d7137ba47d5d90bca62" as const,
+  PortfolioManager: "0x5b73c5498c1e3b4dba84de0f1833c4a029d90519" as const,
   RewardsDistributor: "0x569ba5be4384466f361f01f16c4918305f598456" as const,
   LendingPool: "0x415145771e2e065b689465ea8baa1952f930e461" as const,
   StrategyVault: "0x6d6a568fc9c5cb2e29ef037114437befdb6c85fb" as const,

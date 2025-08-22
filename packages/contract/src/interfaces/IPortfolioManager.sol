@@ -88,4 +88,32 @@ interface IPortfolioManager {
         external 
         view 
         returns (address[] memory);
+    
+    // Analytics Functions
+    function getDiversificationScore(address user) 
+        external 
+        view 
+        returns (uint256 diversificationScore);
+    
+    function getRiskScore(address user) 
+        external 
+        view 
+        returns (uint256 riskScore);
+    
+    function getAssetAllocation(address user) 
+        external 
+        view 
+        returns (uint256[6] memory allocations);
+    
+    function getPortfolioPerformance(address user) 
+        external 
+        view 
+        returns (
+            uint256 totalReturn,
+            uint256 annualizedReturn,
+            uint256 volatility,
+            uint256 sharpeRatio
+        );
+    
+    function takePerformanceSnapshot(address user) external;
 }
