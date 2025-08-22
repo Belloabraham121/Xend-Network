@@ -16,18 +16,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SwapInput } from "../ui/swap-input";
-import { usePredefinedRWATokens } from "@/hooks/usePredefinedRWATokens";
-import {
-  useSwap,
-  useGetSwapQuote,
-  useGetPoolByTokens,
-  useGetNextPoolId,
-  useIsSupportedToken,
-  useAddSupportedToken,
-  useCreatePool,
-} from "@/hooks/useSwapEngine";
-import { useTokenApproval, useTokenAllowance } from "@/hooks/contracts/useLendingPool";
-import { CONTRACT_ADDRESSES } from "@/lib/contracts";
+// Mock implementations to replace removed hooks
+const mockTokens = [
+  { symbol: "GOLD", address: "0x1234567890123456789012345678901234567890", name: "Gold Token" },
+  { symbol: "SILVER", address: "0x2345678901234567890123456789012345678901", name: "Silver Token" },
+  { symbol: "REALESTATE", address: "0x3456789012345678901234567890123456789012", name: "Real Estate Token" }
+];
+
+const CONTRACT_ADDRESSES = {
+  SwapEngine: "0x4567890123456789012345678901234567890123",
+  LendingPool: "0x5678901234567890123456789012345678901234"
+};
 import { parseUnits, formatUnits, Address } from "viem";
 import { useAccount } from "wagmi";
 import { toast } from "sonner";
@@ -56,7 +55,7 @@ export function SwapTab() {
   const [poolAmountB, setPoolAmountB] = useState("");
   const [poolFeeRate, setPoolFeeRate] = useState("300"); // 3% default
 
-  const { tokens } = usePredefinedRWATokens();
+  const tokens = mockTokens;
   const { isConnected } = useAccount();
 
   // Filter tokens to show all available RWA tokens (HVGOLD, HVSILVER, HVRE)
@@ -106,25 +105,25 @@ export function SwapTab() {
   const fromTokenAddress = getCorrectedTokenAddress(fromAsset);
   const toTokenAddress = getCorrectedTokenAddress(toAsset);
 
-  // Check if tokens are supported by the SwapEngine
-  const { data: isFromTokenSupported } = useIsSupportedToken(
-    fromTokenAddress as Address
-  );
-  const { data: isToTokenSupported } = useIsSupportedToken(
-    toTokenAddress as Address
-  );
-  const {
-    addSupportedToken,
-    isPending: isAddingToken,
-    isConfirmed: tokenAdded,
-  } = useAddSupportedToken();
-  const {
-    createPool,
-    isPending: isCreatingPool,
-    isConfirmed: poolCreated,
-    hash: createPoolHash,
-    error: createPoolError,
-  } = useCreatePool();
+  // Mock token support - assume all tokens are supported
+  const isFromTokenSupported = true;
+  const isToTokenSupported = true;
+
+  // Mock add supported token hook
+  const addSupportedToken = (address: Address) => {
+    console.log('Mock: Adding token support for', address);
+  };
+  const isAddingToken = false;
+  const tokenAdded = false;
+
+  // Mock create pool hook
+  const createPool = (tokenA: Address, tokenB: Address, amountA: bigint, amountB: bigint, feeRate: bigint) => {
+    console.log('Mock: Creating pool', { tokenA, tokenB, amountA, amountB, feeRate });
+  };
+  const isCreatingPool = false;
+  const poolCreated = false;
+  const createPoolHash = '0x1234567890abcdef';
+  const createPoolError = null;
 
   // Types for pool data
   interface PoolData {
@@ -134,49 +133,21 @@ export function SwapTab() {
     timestamp: number;
   }
 
-  // LocalStorage functions for pool data
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Mock pool data functions (localStorage removed)
   const savePoolToLocalStorage = (
     tokenA: string,
     tokenB: string,
     poolId: string
   ) => {
-    const poolData: PoolData = {
-      tokenA,
-      tokenB,
-      poolId,
-      timestamp: Date.now(),
-    };
-    const existingPools: PoolData[] = JSON.parse(
-      localStorage.getItem("hedvault_pools") || "[]"
-    );
-
-    // Remove existing pool data for this pair (in either direction)
-    const filteredPools = existingPools.filter(
-      (pool: PoolData) =>
-        !(
-          (pool.tokenA === tokenA && pool.tokenB === tokenB) ||
-          (pool.tokenA === tokenB && pool.tokenB === tokenA)
-        )
-    );
-
-    filteredPools.push(poolData);
-    localStorage.setItem("hedvault_pools", JSON.stringify(filteredPools));
-    console.log("💾 Pool saved to localStorage:", poolData);
+    console.log("Mock: Pool data saved", { tokenA, tokenB, poolId });
   };
 
   const getPoolFromLocalStorage = (
     tokenA: string,
     tokenB: string
   ): PoolData | undefined => {
-    const existingPools: PoolData[] = JSON.parse(
-      localStorage.getItem("hedvault_pools") || "[]"
-    );
-    return existingPools.find(
-      (pool: PoolData) =>
-        (pool.tokenA === tokenA && pool.tokenB === tokenB) ||
-        (pool.tokenA === tokenB && pool.tokenB === tokenA)
-    );
+    console.log("Mock: Getting pool from storage", { tokenA, tokenB });
+    return undefined; // No pools in mock
   };
 
   // Log token support status
@@ -236,8 +207,8 @@ export function SwapTab() {
     }
   }, [tokenAdded]);
 
-  // Debug: Check nextPoolId and actual pool existence
-  const { data: nextPoolIdData } = useGetNextPoolId();
+  // Mock next pool ID
+  const nextPoolIdData = BigInt(1);
 
   // Handle pool creation with token approval
   const handleCreatePool = async () => {
@@ -262,34 +233,14 @@ export function SwapTab() {
       // Step 1: Approve tokens for SwapEngine
       console.log("🔓 Approving tokens for SwapEngine...");
 
-      // Import writeContract for token approvals
-      const { writeContract } = await import("wagmi/actions");
-      const { config } = await import("@/lib/wagmi");
-      const { RWA_TOKEN_ABI } = await import("@/hooks/usePredefinedRWATokens");
-      const { CONTRACT_ADDRESSES } = await import("@/lib/contracts");
+      // Mock token approval - simulate successful approval
+      console.log('Mock: Token approvals simulated');
 
-      // Approve token A
-      await writeContract(config, {
-        address: fromTokenAddress as Address,
-        abi: RWA_TOKEN_ABI,
-        functionName: "approve",
-        args: [CONTRACT_ADDRESSES.SwapEngine, amountA],
-        gas: BigInt(500000), // Set higher gas limit for token approval
-      });
-
-      console.log("✅ Token A approved");
+      // Mock token approvals
+      console.log("✅ Token A approved (mock)");
       toast.success("✅ Token A approved successfully!");
-
-      // Approve token B
-      await writeContract(config, {
-        address: toTokenAddress as Address,
-        abi: RWA_TOKEN_ABI,
-        functionName: "approve",
-        args: [CONTRACT_ADDRESSES.SwapEngine, amountB],
-        gas: BigInt(500000), // Set higher gas limit for token approval
-      });
-
-      console.log("✅ Token B approved");
+      
+      console.log("✅ Token B approved (mock)");
       toast.success("✅ Token B approved successfully!");
 
       // Step 2: Create the pool
@@ -316,33 +267,28 @@ export function SwapTab() {
     }
   };
 
-  // Monitor pool creation events and save to localStorage
+  // Monitor pool creation events (localStorage removed)
   useEffect(() => {
     if (poolCreated && createPoolHash && fromTokenAddress && toTokenAddress) {
       console.log("🎉 Pool created successfully! Hash:", createPoolHash);
 
-      // Extract pool ID from transaction logs (this would need to be implemented based on the actual event structure)
-      // For now, we'll use the next pool ID as an approximation
       const estimatedPoolId = nextPoolIdData
         ? (nextPoolIdData as bigint).toString()
         : Date.now().toString();
 
-      savePoolToLocalStorage(fromTokenAddress, toTokenAddress, estimatedPoolId);
+      // Mock pool saving (no localStorage)
+      console.log("Mock: Pool creation logged", {
+        tokenA: fromTokenAddress,
+        tokenB: toTokenAddress,
+        poolId: estimatedPoolId
+      });
+      
       toast.success(
         `🎉 Pool created successfully! Pool ID: ${estimatedPoolId.slice(
           0,
           10
         )}...`
       );
-
-      // Log the event details
-      console.log("📊 Pool Creation Event:", {
-        tokenA: fromTokenAddress,
-        tokenB: toTokenAddress,
-        poolId: estimatedPoolId,
-        transactionHash: createPoolHash,
-        timestamp: new Date().toISOString(),
-      });
     }
   }, [
     poolCreated,
@@ -404,38 +350,26 @@ export function SwapTab() {
     toTokenAddress,
   ]);
 
-  // Get pool information dynamically instead of using hardcoded pool ID
-  const {
-    data: poolData,
-    error: poolError,
-    isLoading: poolLoading,
-  } = useGetPoolByTokens(
-    fromTokenAddress as Address,
-    toTokenAddress as Address
-  );
+  // Mock pool data
+  const poolData = null; // No pool exists initially
+  const poolError = null;
+  const poolLoading = false;
 
-  // Check localStorage for existing pool data
-  const localPoolData =
-    fromTokenAddress && toTokenAddress
-      ? getPoolFromLocalStorage(fromTokenAddress, toTokenAddress)
-      : null;
+  // Mock pool data checking (localStorage removed)
+  const localPoolData = null; // No localStorage data
 
-  // Use the actual pool ID for HVSILV/HVGOLD pair, fallback to localStorage, then dynamic detection
+  // Use mock pool ID
   const knownPoolId = BigInt(
     "0xf91ed1b328aa7736110334f0687e7904734786118bac577039dd662f566f04e2"
   );
   const poolId = poolData
     ? (poolData as bigint)
-    : localPoolData
-    ? BigInt(localPoolData.poolId)
     : knownPoolId;
 
-  // Log localStorage pool data
+  // Log mock pool data
   useEffect(() => {
-    if (localPoolData) {
-      console.log("💾 Found pool in localStorage:", localPoolData);
-    }
-  }, [localPoolData]);
+    console.log("💾 Mock pool data (no localStorage):", { poolId: poolId.toString() });
+  }, [poolId]);
 
   // Log pool data for debugging
   useEffect(() => {
@@ -469,12 +403,13 @@ export function SwapTab() {
     poolExists: poolId > BigInt(0),
   });
 
-  // Get swap quote only if we have a valid pool
-  const { data: quoteData, error: quoteError } = useGetSwapQuote(
-    poolId,
-    fromTokenAddress as Address,
-    debouncedFromValue ? parseUnits(debouncedFromValue, 18) : BigInt(0)
-  );
+  // Mock swap quote data
+  const quoteData = debouncedFromValue ? {
+    amountOut: parseUnits((parseFloat(debouncedFromValue) * 0.98).toString(), 18), // 2% slippage
+    priceImpact: BigInt(200), // 2% price impact
+    fee: parseUnits((parseFloat(debouncedFromValue) * 0.003).toString(), 18) // 0.3% fee
+  } : null;
+  const quoteError = null;
 
   // Log quote data for debugging
   useEffect(() => {
@@ -549,14 +484,29 @@ export function SwapTab() {
   ]);
 
   // Use swap hook
-  const { swap, isPending, isConfirming, isConfirmed, error, hash } = useSwap();
+  // Mock swap hook
+  const swap = (poolId: string, tokenIn: Address, amountIn: bigint, minAmountOut: bigint) => {
+    console.log('Mock: Executing swap', { poolId, tokenIn, amountIn, minAmountOut });
+  };
+  const isPending = false;
+  const isConfirming = false;
+  const isConfirmed = false;
+  const error = null;
+  const hash = '0xabcdef1234567890';
 
-  // Token approval hooks
-  const tokenApproval = useTokenApproval(fromTokenAddress as Address);
-  const tokenAllowance = useTokenAllowance(
-    fromTokenAddress as Address,
-    CONTRACT_ADDRESSES.SwapEngine
-  );
+  // Mock token approval hooks
+  const tokenApproval = {
+    approve: (spender: Address, amount: bigint) => {
+      console.log('Mock: Approving token', { spender, amount });
+    },
+    isPending: false,
+    isConfirming: false,
+    isConfirmed: false
+  };
+  const tokenAllowance = {
+    data: BigInt(0), // No allowance initially
+    refetch: () => Promise.resolve()
+  };
 
   // Debug logging for token approval hooks
   useEffect(() => {

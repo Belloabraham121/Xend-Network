@@ -8,18 +8,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 // Removed Select imports - using native select elements
 import { toast } from "sonner";
-import { parseEther, formatEther, Address } from "viem";
-import {
-  useDeposit,
-  useWithdraw,
-  useCreateLoan,
-  useRepayLoan,
-  useGetTotalDeposits,
-  useTokenAllowance,
-  useTokenApproval,
-  useTokenBalance,
-} from "@/hooks/contracts/useLendingPool";
-import { CONTRACT_ADDRESSES } from "@/lib/contracts";
+import { Address, parseEther } from "viem";
+
+// Helper function to replace formatEther
+const formatEther = (value: bigint): string => {
+  return (Number(value) / 1e18).toString();
+};
+
+// Mock contract addresses
+const CONTRACT_ADDRESSES = {
+  LendingPool: "0x0000000000000000000000000000000000000000" as Address,
+};
 
 // RWA Token addresses from deployment
 const RWA_TOKEN_ADDRESSES = {
@@ -56,31 +55,24 @@ export function BlendTab() {
   const pendingWithdrawAmountRef = useRef<string>("");
   const pendingWithdrawTokenRef = useRef<Address>(RWA_TOKEN_ADDRESSES.GOLD);
 
-  // Local storage functions for tracking individual token amounts
+  // Mock functions for tracking individual token amounts (localStorage removed)
   const getTokenLentFromStorage = (tokenType: string): number => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem(`hedvault_${tokenType}_lent`);
-      return stored ? parseFloat(stored) : 0;
-    }
-    return 0;
+    return 0; // Always return 0 for mock
   };
 
   const updateTokenLentInStorage = (
     tokenType: string,
     amount: number
   ): void => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem(`hedvault_${tokenType}_lent`, amount.toString());
-      console.log(`Updated ${tokenType} lent in storage:`, amount);
+    console.log(`Mock: Updated ${tokenType} lent:`, amount);
 
-      // Update state based on token type
-      if (tokenType === "gold") setGoldLentAmount(amount);
-      else if (tokenType === "real_estate") setRealEstateLentAmount(amount);
-      else if (tokenType === "invoice") setInvoiceLentAmount(amount);
+    // Update state based on token type
+    if (tokenType === "gold") setGoldLentAmount(amount);
+    else if (tokenType === "real_estate") setRealEstateLentAmount(amount);
+    else if (tokenType === "invoice") setInvoiceLentAmount(amount);
 
-      // Recalculate total
-      updateTotalFromIndividualAmounts();
-    }
+    // Recalculate total
+    updateTotalFromIndividualAmounts();
   };
 
   const updateTotalFromIndividualAmounts = (): void => {
@@ -89,11 +81,8 @@ export function BlendTab() {
     const invoice = getTokenLentFromStorage("invoice");
     const total = gold + realEstate + invoice;
 
-    if (typeof window !== "undefined") {
-      localStorage.setItem("hedvault_total_lent", total.toString());
-      setTotalLentAmount(total);
-      console.log("Updated total lent from individual amounts:", total);
-    }
+    setTotalLentAmount(total);
+    console.log("Mock: Updated total lent from individual amounts:", total);
   };
 
   const addToTokenLent = (
@@ -216,13 +205,9 @@ export function BlendTab() {
     }
   };
 
-  // Legacy functions for backward compatibility
+  // Mock legacy functions for backward compatibility
   const getTotalLentFromStorage = (): number => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("hedvault_total_lent");
-      return stored ? parseFloat(stored) : 0;
-    }
-    return 0;
+    return 0; // Always return 0 for mock
   };
 
   const addToTotalLent = (depositAmount: number): void => {
@@ -254,49 +239,91 @@ export function BlendTab() {
     const total = goldAmount + realEstateAmount + invoiceAmount;
     setTotalLentAmount(total);
 
-    // Ensure total is also stored
-    if (typeof window !== "undefined") {
-      localStorage.setItem("hedvault_total_lent", total.toString());
-    }
+    // Mock: Total calculated but not stored
+    console.log("Mock: Total lent calculated:", total);
   }, []);
 
-  // Lending Pool Hooks
-  const deposit = useDeposit();
-  const withdraw = useWithdraw();
-  const createLoan = useCreateLoan();
-  const repayLoan = useRepayLoan();
+  // Mock hook implementations
+  const deposit = {
+    write: () => {
+      toast.success("Deposit transaction submitted!");
+      // Simulate adding to local storage
+      const amount = parseFloat(depositAmount);
+      if (amount > 0) {
+        addToTokenLent(selectedToken, amount);
+        setDepositAmount("");
+      }
+    },
+    isLoading: false,
+    isConfirmed: false,
+    error: null,
+  };
 
-  // Get total deposits for each token
-  const goldDeposits = useGetTotalDeposits(RWA_TOKEN_ADDRESSES.GOLD);
-  const silverDeposits = useGetTotalDeposits(RWA_TOKEN_ADDRESSES.SILVER);
-  const realEstateDeposits = useGetTotalDeposits(
-    RWA_TOKEN_ADDRESSES.REAL_ESTATE
-  );
+  const withdraw = {
+    write: () => {
+      toast.success("Withdrawal transaction submitted!");
+      // Simulate subtracting from local storage
+      const amount = parseFloat(withdrawAmount);
+      if (amount > 0) {
+        subtractFromTokenLent(selectedToken, amount);
+        setWithdrawAmount("");
+      }
+    },
+    isLoading: false,
+    isConfirmed: false,
+    error: null,
+  };
 
-  // Token approval hooks
-  const tokenAllowance = useTokenAllowance(
-    selectedToken,
-    CONTRACT_ADDRESSES.LendingPool
-  );
-  const tokenApproval = useTokenApproval(selectedToken);
-  const tokenBalance = useTokenBalance(selectedToken);
+  const createLoan = {
+    write: () => {
+      toast.success("Loan creation transaction submitted!");
+      setBorrowAmount("");
+      setCollateralAmount("");
+    },
+    isLoading: false,
+  };
 
-  // Collateral token approval for loans
-  const collateralAllowance = useTokenAllowance(
-    selectedCollateralToken,
-    CONTRACT_ADDRESSES.LendingPool
-  );
-  const collateralApproval = useTokenApproval(selectedCollateralToken);
+  const repayLoan = {
+    write: () => {
+      toast.success("Loan repayment transaction submitted!");
+      setRepayAmount("");
+      setSelectedLoanId("");
+    },
+    isLoading: false,
+  };
+
+  // Mock deposit data
+  const goldDeposits = { data: BigInt("1000000000000000000000"), isLoading: false };
+  const silverDeposits = { data: BigInt("500000000000000000000"), isLoading: false };
+  const realEstateDeposits = { data: BigInt("2000000000000000000000"), isLoading: false };
+
+  // Mock token data
+  const tokenAllowance = { data: BigInt("0"), isLoading: false };
+  const tokenApproval = {
+    write: () => {
+      toast.success("Token approval submitted!");
+      setIsApprovalInProgress(false);
+    },
+    isLoading: false,
+  };
+  const tokenBalance = { data: BigInt("10000000000000000000000"), isLoading: false };
+
+  // Mock collateral data
+  const collateralAllowance = { data: BigInt("0"), isLoading: false };
+  const collateralApproval = {
+    write: () => {
+      toast.success("Collateral approval submitted!");
+      setIsCollateralApprovalInProgress(false);
+    },
+    isLoading: false,
+  };
 
   // Calculate total deposits across all tokens
   const calculateTotalDeposits = () => {
-    const gold = goldDeposits.data ? Number(formatEther(goldDeposits.data)) : 0;
-    const silver = silverDeposits.data
-      ? Number(formatEther(silverDeposits.data))
-      : 0;
-    const realEstate = realEstateDeposits.data
-      ? Number(formatEther(realEstateDeposits.data))
-      : 0;
+    // Convert BigInt to number (mock data is in wei, so divide by 10^18)
+    const gold = goldDeposits.data ? Number(goldDeposits.data) / 1e18 : 0;
+    const silver = silverDeposits.data ? Number(silverDeposits.data) / 1e18 : 0;
+    const realEstate = realEstateDeposits.data ? Number(realEstateDeposits.data) / 1e18 : 0;
     return gold + silver + realEstate;
   };
 
