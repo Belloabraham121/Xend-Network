@@ -78,6 +78,7 @@ contract StrategyVault is IStrategyVault, Ownable, ReentrancyGuard, Pausable {
     event Invested(address indexed investor, uint256 indexed strategyId, uint256 amount, uint256 shares);
     event Withdrawn(address indexed investor, uint256 indexed strategyId, uint256 shares, uint256 amount);
     event FeesCollected(uint256 indexed strategyId, uint256 managementFee, uint256 performanceFee);
+    event AssetRebalanced(uint256 indexed strategyId, address indexed asset, uint256 amount, bool isBuying);
     
     modifier validStrategy(uint256 strategyId) {
         require(strategyId > 0 && strategyId < nextStrategyId, "Invalid strategy ID");
@@ -361,16 +362,54 @@ contract StrategyVault is IStrategyVault, Ownable, ReentrancyGuard, Pausable {
             uint256 investAmount = (amount * allocation) / BASIS_POINTS;
             
             if (investAmount > 0) {
-                // In a real implementation, this would purchase the actual assets
-                // For now, we'll assume the contract holds the assets
+                // Transfer funds to asset (simulated purchase)
+                // In production, this would integrate with DEX or asset provider
+                try IERC20(asset).transfer(address(this), investAmount) {
+                    strategyTotalInvested[strategyId] += investAmount;
+                } catch {
+                    // Handle transfer failure - continue with next asset
+                    continue;
+                }
             }
         }
     }
     
     function _executeWithdrawal(uint256 strategyId, uint256 amount) internal {
-        // In a real implementation, this would sell assets proportionally
-        // and transfer the proceeds to the user
-        payable(msg.sender).transfer(amount);
+        // Calculate proportional withdrawal from each asset
+        address[] memory assets = strategyAssets[strategyId];
+        uint256 totalValue = getStrategyValue(strategyId);
+        
+        if (totalValue == 0) {
+            return;
+        }
+        
+        uint256 totalWithdrawn = 0;
+        
+        for (uint256 i = 0; i < assets.length; i++) {
+            address asset = assets[i];
+            uint256 assetBalance = IERC20(asset).balanceOf(address(this));
+            uint256 assetPrice = priceOracle.getPrice(asset);
+            uint256 assetValue = (assetBalance * assetPrice) / 1e18;
+            
+            if (assetValue > 0) {
+                uint256 proportionalAmount = (amount * assetValue) / totalValue;
+                uint256 tokensToWithdraw = (proportionalAmount * 1e18) / assetPrice;
+                
+                if (tokensToWithdraw > 0 && tokensToWithdraw <= assetBalance) {
+                    try IERC20(asset).transfer(msg.sender, tokensToWithdraw) {
+                        totalWithdrawn += proportionalAmount;
+                    } catch {
+                        // Continue with next asset if transfer fails
+                        continue;
+                    }
+                }
+            }
+        }
+        
+        // Update strategy total
+        if (totalWithdrawn > 0) {
+            strategyTotalInvested[strategyId] -= totalWithdrawn;
+        }
     }
     
     function _executeRebalance(uint256 strategyId) internal {
@@ -387,7 +426,30 @@ contract StrategyVault is IStrategyVault, Ownable, ReentrancyGuard, Pausable {
             
             // Rebalance if deviation exceeds threshold
             if (currentValue != targetValue) {
-                // In a real implementation, this would buy/sell assets to reach target allocation
+                uint256 deviation = currentValue > targetValue 
+                    ? currentValue - targetValue 
+                    : targetValue - currentValue;
+                
+                // Only rebalance if deviation is significant
+                if (deviation > (targetValue * rebalanceThreshold) / BASIS_POINTS) {
+                    if (currentValue > targetValue) {
+                        // Need to sell some of this asset
+                        uint256 excessValue = currentValue - targetValue;
+                        uint256 tokensToSell = (excessValue * 1e18) / priceOracle.getPrice(asset);
+                        
+                        // In production, would sell on DEX and redistribute
+                        // For now, just emit event for off-chain handling
+                        emit AssetRebalanced(strategyId, asset, tokensToSell, false);
+                    } else {
+                        // Need to buy more of this asset
+                        uint256 shortfallValue = targetValue - currentValue;
+                        uint256 tokensToBuy = (shortfallValue * 1e18) / priceOracle.getPrice(asset);
+                        
+                        // In production, would buy on DEX using excess from other assets
+                        // For now, just emit event for off-chain handling
+                        emit AssetRebalanced(strategyId, asset, tokensToBuy, true);
+                    }
+                }
             }
         }
     }

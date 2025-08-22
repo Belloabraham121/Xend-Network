@@ -25,6 +25,13 @@ contract RewardsDistributor is IRewardsDistributor, Ownable, ReentrancyGuard, Pa
     mapping(address => uint256) public lastDistributionTime;
     mapping(address => uint256) public totalRewardsDistributed;
     
+    // Asset and user tracking for monthly distribution
+    address[] public trackedAssets;
+    mapping(address => bool) public isAssetTracked;
+    mapping(address => address[]) public assetUsers; // asset => users who have positions
+    mapping(address => mapping(address => bool)) public isUserTrackedForAsset; // asset => user => bool
+    mapping(address => uint256) public assetUserCount; // asset => number of users
+    
     // Contract references
     IPortfolioManager public immutable portfolioManager;
     IRewardAssetFactory public immutable assetFactory;
@@ -223,28 +230,95 @@ contract RewardsDistributor is IRewardsDistributor, Ownable, ReentrancyGuard, Pa
     /**
      * @notice Distribute monthly rewards to all eligible users
      */
-    function distributeMonthlyRewards() external override onlyOwner {
+    function distributeMonthlyRewards() external override onlyOwner nonReentrant whenNotPaused {
         uint256 totalDistributed = 0;
         uint256 recipientCount = 0;
         
-        // Get all supported assets from the factory
-        // Note: In a real implementation, we'd maintain a list of supported assets
-        // For now, we'll use a simplified approach
+        // Step 1: Get all active assets from the factory
+        address[] memory allAssets = assetFactory.getAllAssets();
         
-        // This is a simplified implementation that would need to be expanded
-        // to track all assets and users in the system
+        // Step 2: Process each asset
+        for (uint256 i = 0; i < allAssets.length; i++) {
+            address asset = allAssets[i];
+            
+            // Skip if asset is not active or distribution interval not reached
+            if (!assetFactory.isValidAsset(asset)) continue;
+            if (block.timestamp < lastDistributionTime[asset] + distributionInterval) continue;
+            
+            // Check if there are sufficient funds in the reward pool
+            uint256 poolBalance = rewardPools[asset];
+            if (poolBalance == 0) continue;
+            
+            // Step 3: Get users who have positions in this asset via PortfolioManager
+            // Note: Since we don't have a direct way to enumerate all users,
+            // we'll distribute to tracked users for this asset
+            address[] memory users = assetUsers[asset];
+            
+            uint256 assetDistributed = 0;
+            uint256 assetRecipients = 0;
+            
+            // Step 4: Calculate and distribute rewards to each eligible user
+            for (uint256 j = 0; j < users.length; j++) {
+                address user = users[j];
+                
+                // Check if user still has an active position
+                IDataTypes.Position memory position = portfolioManager.getPosition(user, asset);
+                if (position.amount == 0 || !position.isActive) {
+                    continue;
+                }
+                
+                // Check if user is eligible for rewards (minimum holding period, etc.)
+                if (!this.isEligibleForReward(user, asset)) {
+                    continue;
+                }
+                
+                // Calculate reward amount for this user
+                uint256 rewardAmount = calculateReward(user, asset);
+                
+                // Skip if reward is too small or exceeds remaining pool balance
+                if (rewardAmount < minClaimAmount || rewardAmount > (poolBalance - assetDistributed)) {
+                    continue;
+                }
+                
+                // Distribute the reward
+                bool success = _distributeRewardToUser(user, asset, rewardAmount);
+                
+                if (success) {
+                    assetDistributed += rewardAmount;
+                    assetRecipients++;
+                    
+                    // Update user's last reward claim time
+                    userRewards[user][asset].timestamp = block.timestamp;
+                    userRewards[user][asset].totalClaimed += rewardAmount;
+                    userRewards[user][asset].pendingRewards = 0;
+                    
+                    emit RewardClaimed(user, asset, rewardAmount);
+                }
+                
+                // Break if we've exhausted the pool for this asset
+                if (assetDistributed >= poolBalance) break;
+            }
+            
+            // Step 5: Update asset-specific tracking
+            if (assetDistributed > 0) {
+                rewardPools[asset] -= assetDistributed;
+                totalRewardsDistributed[asset] += assetDistributed;
+                lastDistributionTime[asset] = block.timestamp;
+                
+                totalDistributed += assetDistributed;
+                recipientCount += assetRecipients;
+                
+                emit MonthlyRewardsDistributed(asset, block.timestamp);
+            }
+        }
         
-        // Example implementation for demonstration:
-        // 1. Loop through tracked assets (would need asset tracking)
-        // 2. For each asset, loop through users who have positions
-        // 3. Calculate and distribute rewards
-        
-        // For now, emit event with placeholder values
-        // In production, this would be replaced with actual distribution logic
+        // Step 6: Emit global monthly distribution event
         emit MonthlyRewardDistributed(totalDistributed, recipientCount);
         
-        // Mark distribution time for all assets
-        // This would typically be done per asset as we iterate through them
+        // Step 7: Clean up inactive users from tracking (optional gas optimization)
+        if (recipientCount > 0) {
+            _cleanupInactiveUsers();
+        }
     }
     
     /**
@@ -580,6 +654,198 @@ contract RewardsDistributor is IRewardsDistributor, Ownable, ReentrancyGuard, Pa
         } else {
             uint256 balance = IERC20(rewardToken).balanceOf(address(this));
             IERC20(rewardToken).safeTransfer(owner(), balance);
+        }
+    }
+    
+    /**
+     * @notice Add user to asset tracking
+     * @param user User address
+     * @param asset Asset address
+     */
+    function addUserToAssetTracking(address user, address asset) external {
+        require(msg.sender == address(portfolioManager) || msg.sender == owner(), "Unauthorized");
+        
+        if (!isUserTrackedForAsset[asset][user]) {
+            assetUsers[asset].push(user);
+            isUserTrackedForAsset[asset][user] = true;
+            assetUserCount[asset]++;
+            
+            // Track asset if not already tracked
+            if (!isAssetTracked[asset]) {
+                trackedAssets.push(asset);
+                isAssetTracked[asset] = true;
+            }
+            
+            // Initialize user reward info if needed
+            if (userRewards[user][asset].timestamp == 0) {
+                userRewards[user][asset] = IDataTypes.RewardInfo({
+                    recipient: user,
+                    asset: asset,
+                    amount: 0,
+                    multiplier: BASE_REWARD_RATE,
+                    timestamp: block.timestamp,
+                    isClaimed: false,
+                    rewardType: "base",
+                    totalClaimed: 0,
+                    pendingRewards: 0
+                });
+            }
+        }
+    }
+    
+    /**
+     * @notice Remove user from asset tracking
+     * @param user User address
+     * @param asset Asset address
+     */
+    function removeUserFromAssetTracking(address user, address asset) external {
+        require(msg.sender == address(portfolioManager) || msg.sender == owner(), "Unauthorized");
+        
+        if (isUserTrackedForAsset[asset][user]) {
+            // Remove user from asset users array
+            address[] storage users = assetUsers[asset];
+            for (uint256 i = 0; i < users.length; i++) {
+                if (users[i] == user) {
+                    users[i] = users[users.length - 1];
+                    users.pop();
+                    break;
+                }
+            }
+            
+            isUserTrackedForAsset[asset][user] = false;
+            assetUserCount[asset]--;
+        }
+    }
+    
+    /**
+     * @notice Internal function to distribute reward to a specific user
+     * @param user User address
+     * @param asset Asset address
+     * @param amount Reward amount
+     * @return success True if distribution was successful
+     */
+    function _distributeRewardToUser(address user, address asset, uint256 amount) internal returns (bool) {
+        try this._safeTransferReward(user, amount) {
+            return true;
+        } catch {
+            // If transfer fails, we'll skip this user and continue
+            return false;
+        }
+    }
+    
+    /**
+     * @notice Safe reward transfer function
+     * @param to Recipient address
+     * @param amount Amount to transfer
+     */
+    function _safeTransferReward(address to, uint256 amount) external {
+        require(msg.sender == address(this), "Internal function only");
+        
+        if (rewardToken == address(0)) {
+            // Native token transfer
+            payable(to).transfer(amount);
+        } else {
+            // ERC20 token transfer
+            IERC20(rewardToken).safeTransfer(to, amount);
+        }
+    }
+    
+    /**
+     * @notice Clean up inactive users from tracking (gas optimization)
+     */
+    function _cleanupInactiveUsers() internal {
+        // Limit cleanup to prevent excessive gas usage
+        uint256 maxCleanupPerCall = 10;
+        uint256 cleanupCount = 0;
+        
+        for (uint256 i = 0; i < trackedAssets.length && cleanupCount < maxCleanupPerCall; i++) {
+            address asset = trackedAssets[i];
+            address[] storage users = assetUsers[asset];
+            
+            for (uint256 j = 0; j < users.length && cleanupCount < maxCleanupPerCall; j++) {
+                address user = users[j];
+                
+                // Check if user still has an active position
+                IDataTypes.Position memory position = portfolioManager.getPosition(user, asset);
+                if (position.amount == 0 || !position.isActive) {
+                    // Remove inactive user
+                    users[j] = users[users.length - 1];
+                    users.pop();
+                    isUserTrackedForAsset[asset][user] = false;
+                    assetUserCount[asset]--;
+                    cleanupCount++;
+                    j--; // Adjust index after removal
+                }
+            }
+        }
+    }
+    
+    /**
+     * @notice Get tracked assets count
+     * @return Number of tracked assets
+     */
+    function getTrackedAssetsCount() external view returns (uint256) {
+        return trackedAssets.length;
+    }
+    
+    /**
+     * @notice Get tracked assets
+     * @return Array of tracked asset addresses
+     */
+    function getTrackedAssets() external view returns (address[] memory) {
+        return trackedAssets;
+    }
+    
+    /**
+     * @notice Get users for a specific asset
+     * @param asset Asset address
+     * @return Array of user addresses
+     */
+    function getAssetUsers(address asset) external view returns (address[] memory) {
+        return assetUsers[asset];
+    }
+    
+    /**
+     * @notice Get user count for a specific asset
+     * @param asset Asset address
+     * @return Number of users holding the asset
+     */
+    function getAssetUserCount(address asset) external view returns (uint256) {
+        return assetUserCount[asset];
+    }
+    
+    /**
+     * @notice Check if user is tracked for an asset
+     * @param user User address
+     * @param asset Asset address
+     * @return True if user is tracked
+     */
+    function isUserTracked(address user, address asset) external view returns (bool) {
+        return isUserTrackedForAsset[asset][user];
+    }
+    
+    /**
+     * @notice Emergency function to manually clean up all inactive users
+     */
+    function forceCleanupInactiveUsers() external onlyOwner {
+        for (uint256 i = 0; i < trackedAssets.length; i++) {
+            address asset = trackedAssets[i];
+            address[] storage users = assetUsers[asset];
+            
+            for (uint256 j = 0; j < users.length; j++) {
+                address user = users[j];
+                
+                // Check if user still has an active position
+                IDataTypes.Position memory position = portfolioManager.getPosition(user, asset);
+                if (position.amount == 0 || !position.isActive) {
+                    // Remove inactive user
+                    users[j] = users[users.length - 1];
+                    users.pop();
+                    isUserTrackedForAsset[asset][user] = false;
+                    assetUserCount[asset]--;
+                    j--; // Adjust index after removal
+                }
+            }
         }
     }
     

@@ -17,9 +17,9 @@ import "../src/core/AssetMarketplace.sol";
  */
 contract Deploy is Script {
     // Deployment addresses will be stored here
+    address public chainlinkPriceOracle;
     address public rewardAssetFactory;
     address public portfolioManager;
-    address public chainlinkPriceOracle;
     address public rewardsDistributor;
     address public lendingPool;
     address public strategyVault;
@@ -27,7 +27,6 @@ contract Deploy is Script {
     
     // Configuration parameters
     struct DeploymentConfig {
-        address deployer;
         address feeRecipient;
         uint256 creationFee;
         uint256 maxAssetsPerUser;
@@ -39,7 +38,8 @@ contract Deploy is Script {
         // Get deployment configuration
         DeploymentConfig memory config = getDeploymentConfig();
         
-        vm.startBroadcast(config.deployer);
+        // Start broadcasting transactions
+        vm.startBroadcast();
         
         // Deploy contracts in dependency order
         deployChainlinkPriceOracle();
@@ -59,15 +59,25 @@ contract Deploy is Script {
         logDeploymentAddresses();
     }
     
+    /**
+     * @notice Deploy ChainlinkPriceOracle
+     * @dev Requires: initialOwner address
+     */
     function deployChainlinkPriceOracle() internal {
         console.log("Deploying ChainlinkPriceOracle...");
         
-        ChainlinkPriceOracle oracle = new ChainlinkPriceOracle(msg.sender);
+        ChainlinkPriceOracle oracle = new ChainlinkPriceOracle(
+            msg.sender // initialOwner
+        );
         chainlinkPriceOracle = address(oracle);
         
         console.log("ChainlinkPriceOracle deployed at:", chainlinkPriceOracle);
     }
     
+    /**
+     * @notice Deploy RewardAssetFactory
+     * @dev Requires: No constructor parameters (uses msg.sender as owner)
+     */
     function deployRewardAssetFactory(DeploymentConfig memory config) internal {
         console.log("Deploying RewardAssetFactory...");
         
@@ -80,10 +90,16 @@ contract Deploy is Script {
         console.log("RewardAssetFactory deployed at:", rewardAssetFactory);
     }
     
+    /**
+     * @notice Deploy PortfolioManager
+     * @dev Requires: assetFactory address
+     */
     function deployPortfolioManager(DeploymentConfig memory config) internal {
         console.log("Deploying PortfolioManager...");
         
-        PortfolioManager manager = new PortfolioManager(rewardAssetFactory);
+        PortfolioManager manager = new PortfolioManager(
+            rewardAssetFactory // _assetFactory
+        );
         portfolioManager = address(manager);
         
         // Configure the manager after deployment
@@ -92,87 +108,130 @@ contract Deploy is Script {
         console.log("PortfolioManager deployed at:", portfolioManager);
     }
     
+    /**
+     * @notice Deploy RewardsDistributor
+     * @dev Requires: portfolioManager, assetFactory, rewardToken addresses
+     */
     function deployRewardsDistributor(DeploymentConfig memory config) internal {
         console.log("Deploying RewardsDistributor...");
         
         RewardsDistributor distributor = new RewardsDistributor(
-            portfolioManager,
-            rewardAssetFactory,
-            address(0) // Using native token for rewards
+            portfolioManager,    // _portfolioManager
+            rewardAssetFactory, // _assetFactory
+            address(0)          // _rewardToken (using native token for rewards)
         );
         rewardsDistributor = address(distributor);
         
         // Fund the rewards pool if specified
         if (config.rewardPoolAmount > 0) {
-            payable(rewardsDistributor).transfer(config.rewardPoolAmount);
+            // Note: This would require the deployer to have sufficient balance
+            // payable(rewardsDistributor).transfer(config.rewardPoolAmount);
+            console.log("Warning: Reward pool funding skipped. Fund manually if needed.");
         }
         
         console.log("RewardsDistributor deployed at:", rewardsDistributor);
     }
     
+    /**
+     * @notice Deploy LendingPool
+     * @dev Requires: priceOracle, assetFactory, initialOwner addresses
+     */
     function deployLendingPool() internal {
         console.log("Deploying LendingPool...");
         
         LendingPool pool = new LendingPool(
-            chainlinkPriceOracle,
-            rewardAssetFactory,
-            msg.sender // initialOwner
+            chainlinkPriceOracle, // _priceOracle
+            rewardAssetFactory,   // _assetFactory
+            msg.sender            // initialOwner
         );
         lendingPool = address(pool);
         
         console.log("LendingPool deployed at:", lendingPool);
     }
     
+    /**
+     * @notice Deploy StrategyVault
+     * @dev Requires: priceOracle, assetFactory, portfolioManager addresses
+     */
     function deployStrategyVault() internal {
         console.log("Deploying StrategyVault...");
         
         StrategyVault vault = new StrategyVault(
-            chainlinkPriceOracle,
-            rewardAssetFactory,
-            portfolioManager
+            chainlinkPriceOracle, // _priceOracle
+            rewardAssetFactory,   // _assetFactory
+            portfolioManager      // _portfolioManager
         );
         strategyVault = address(vault);
         
         console.log("StrategyVault deployed at:", strategyVault);
     }
     
+    /**
+     * @notice Deploy AssetMarketplace
+     * @dev Requires: priceOracle, assetFactory, feeRecipient addresses
+     */
     function deployAssetMarketplace(DeploymentConfig memory config) internal {
         console.log("Deploying AssetMarketplace...");
         
         AssetMarketplace marketplace = new AssetMarketplace(
-            chainlinkPriceOracle,
-            rewardAssetFactory,
-            config.feeRecipient
+            chainlinkPriceOracle, // _priceOracle
+            rewardAssetFactory,   // _assetFactory
+            config.feeRecipient   // _feeRecipient
         );
         assetMarketplace = address(marketplace);
         
         console.log("AssetMarketplace deployed at:", assetMarketplace);
     }
     
+    /**
+     * @notice Configure contracts after deployment
+     */
     function configureContracts(DeploymentConfig memory config) internal {
         console.log("Configuring contracts...");
-        
-        // Set up basic contract configurations
-        // Note: Role-based access control is not implemented in the current contracts
-        // Future versions can add proper RBAC here
         
         // Configure RewardAssetFactory
         RewardAssetFactory(rewardAssetFactory).setCreatorAuthorization(msg.sender, true);
         
+        // Note: Additional configuration can be added here as needed
+        // For example, setting up initial price feeds in the oracle,
+        // configuring lending pool parameters, etc.
+        
         console.log("Contract configuration completed");
     }
     
+    /**
+     * @notice Get deployment configuration from environment or defaults
+     */
     function getDeploymentConfig() internal view returns (DeploymentConfig memory) {
-        // Get configuration from environment variables or use defaults
-        address deployer = vm.envOr("DEPLOYER_ADDRESS", msg.sender);
-        address feeRecipient = vm.envOr("FEE_RECIPIENT", deployer);
-        uint256 creationFee = vm.envOr("CREATION_FEE", uint256(0.01 ether));
-        uint256 maxAssetsPerUser = vm.envOr("MAX_ASSETS_PER_USER", uint256(50));
-        uint256 maxPositionsPerPortfolio = vm.envOr("MAX_POSITIONS_PER_PORTFOLIO", uint256(20));
-        uint256 rewardPoolAmount = vm.envOr("REWARD_POOL_AMOUNT", uint256(0));
+        // Use deployer as fee recipient by default, can be changed later
+        address feeRecipient = msg.sender;
+        uint256 creationFee = 0.01 ether;           // Default 0.01 ETH
+        uint256 maxAssetsPerUser = 50;              // Default 50 assets per user
+        uint256 maxPositionsPerPortfolio = 20;      // Default 20 positions per portfolio
+        uint256 rewardPoolAmount = 0;               // Default 0 - no initial funding
+        
+        // Try to read from environment variables if available
+        try vm.envAddress("FEE_RECIPIENT") returns (address envFeeRecipient) {
+            feeRecipient = envFeeRecipient;
+        } catch {}
+        
+        try vm.envUint("CREATION_FEE") returns (uint256 envCreationFee) {
+            creationFee = envCreationFee;
+        } catch {}
+        
+        try vm.envUint("MAX_ASSETS_PER_USER") returns (uint256 envMaxAssets) {
+            maxAssetsPerUser = envMaxAssets;
+        } catch {}
+        
+        try vm.envUint("MAX_POSITIONS_PER_PORTFOLIO") returns (uint256 envMaxPositions) {
+            maxPositionsPerPortfolio = envMaxPositions;
+        } catch {}
+        
+        try vm.envUint("REWARD_POOL_AMOUNT") returns (uint256 envRewardPool) {
+            rewardPoolAmount = envRewardPool;
+        } catch {}
         
         return DeploymentConfig({
-            deployer: deployer,
             feeRecipient: feeRecipient,
             creationFee: creationFee,
             maxAssetsPerUser: maxAssetsPerUser,
@@ -181,6 +240,9 @@ contract Deploy is Script {
         });
     }
     
+    /**
+     * @notice Log deployment addresses
+     */
     function logDeploymentAddresses() internal view {
         console.log("\n=== DEPLOYMENT SUMMARY ===");
         console.log("ChainlinkPriceOracle:", chainlinkPriceOracle);
@@ -191,6 +253,19 @@ contract Deploy is Script {
         console.log("StrategyVault:", strategyVault);
         console.log("AssetMarketplace:", assetMarketplace);
         console.log("========================\n");
+        
+        // Output deployment addresses in JSON format for easy parsing
+        console.log("\n=== JSON FORMAT ===");
+        console.log("{");
+        console.log('  "chainlinkPriceOracle":', '"', chainlinkPriceOracle, '",');
+        console.log('  "rewardAssetFactory":', '"', rewardAssetFactory, '",');
+        console.log('  "portfolioManager":', '"', portfolioManager, '",');
+        console.log('  "rewardsDistributor":', '"', rewardsDistributor, '",');
+        console.log('  "lendingPool":', '"', lendingPool, '",');
+        console.log('  "strategyVault":', '"', strategyVault, '",');
+        console.log('  "assetMarketplace":', '"', assetMarketplace, '"');
+        console.log("}");
+        console.log("==================\n");
     }
     
     // Helper functions for different networks
