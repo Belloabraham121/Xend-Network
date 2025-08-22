@@ -250,6 +250,7 @@ export function usePortfolioManager() {
       abi: PortfolioManagerABI,
       functionName: "addPosition",
       args: [user, asset, amount, averagePrice],
+      gas: BigInt(85000000),
     });
   };
 
@@ -265,6 +266,7 @@ export function usePortfolioManager() {
       abi: PortfolioManagerABI,
       functionName: "updatePosition",
       args: [user, asset, newAmount, newAveragePrice],
+      gas: BigInt(85000000),
     });
   };
 
@@ -275,6 +277,7 @@ export function usePortfolioManager() {
       abi: PortfolioManagerABI,
       functionName: "removePosition",
       args: [user, asset],
+      gas: BigInt(85000000),
     });
   };
 
