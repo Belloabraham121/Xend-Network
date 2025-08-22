@@ -31,8 +31,11 @@ contract DeployPortfolioManager is Script {
             "Asset factory address required"
         );
 
-        // Start broadcasting transactions
-        vm.startBroadcast();
+        // Get private key from environment
+        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+
+        // Start broadcasting transactions with private key
+        vm.startBroadcast(deployerPrivateKey);
 
         // Deploy PortfolioManager
         deployPortfolioManager(config);
@@ -170,10 +173,14 @@ contract DeployPortfolioManager is Script {
             return 0x1234567890123456789012345678901234567890;
         } else if (chainId == 5000) {
             // Mantle Mainnet
-            revert("Mainnet deployment requires ASSET_FACTORY_ADDRESS environment variable");
+            revert(
+                "Mainnet deployment requires ASSET_FACTORY_ADDRESS environment variable"
+            );
         } else {
             // Unknown network
-            revert("Unsupported network. Please set ASSET_FACTORY_ADDRESS environment variable");
+            revert(
+                "Unsupported network. Please set ASSET_FACTORY_ADDRESS environment variable"
+            );
         }
     }
 
@@ -211,7 +218,9 @@ contract DeployPortfolioManager is Script {
 
         console.log("\nDeployment JSON:");
         console.log(deploymentInfo);
-        console.log("\nNote: Copy the above JSON to ./deployments/portfolio-manager.json for frontend integration");
+        console.log(
+            "\nNote: Copy the above JSON to ./deployments/portfolio-manager.json for frontend integration"
+        );
     }
 
     /**
@@ -224,7 +233,9 @@ contract DeployPortfolioManager is Script {
             "Invalid asset factory address"
         );
 
-        vm.startBroadcast();
+        // Get private key from environment
+        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        vm.startBroadcast(deployerPrivateKey);
 
         PortfolioManagerConfig memory config = PortfolioManagerConfig({
             assetFactory: assetFactoryAddress,
@@ -245,7 +256,9 @@ contract DeployPortfolioManager is Script {
      * @notice Deploy for testing with minimal configuration
      */
     function deployForTesting() external {
-        vm.startBroadcast();
+        // Get private key from environment
+        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        vm.startBroadcast(deployerPrivateKey);
 
         // Deploy a mock asset factory for testing
         RewardAssetFactory mockFactory = new RewardAssetFactory();

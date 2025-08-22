@@ -20,70 +20,87 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAccount } from "wagmi";
 import { usePortfolioManager } from "@/hooks/usePortfolioManager";
-import { formatEther, parseEther } from "viem";
 import { useRewardAssetFactory } from "@/hooks/useRewardAssetFactory";
+import { formatEther, parseEther } from "viem";
 import { toast } from "sonner";
 
 interface ActivePositionsProps {
   showBalance: boolean;
 }
 
+interface Position {
+  tokenAddress: string;
+  amount: bigint;
+  value: bigint;
+  entryPrice: bigint;
+  currentPrice: bigint;
+  lastUpdated: bigint;
+  isActive: boolean;
+}
+
+interface ContractAssetInfo {
+  name: string;
+  symbol: string;
+  assetType: number;
+  pricePerToken: bigint;
+  totalSupply: bigint;
+  isActive: boolean;
+}
+
 interface PositionItemProps {
-  assetAddress: `0x${string}`;
+  position: Position;
   showBalance: boolean;
   onAddPosition: (asset: `0x${string}`) => void;
   onRemovePosition: (asset: `0x${string}`) => void;
 }
 
 function PositionItem({
-  assetAddress,
+  position,
   showBalance,
   onAddPosition,
   onRemovePosition,
 }: PositionItemProps) {
-  const { address: userAddress } = useAccount();
-  const { useGetAssetBalance, useGetAssetAllocation } = usePortfolioManager();
+  const { useGetAssetInfo } = useRewardAssetFactory();
+  const { data: contractAssetInfo, isLoading } = useGetAssetInfo(position.tokenAddress as `0x${string}`);
 
-  const assetBalance = useGetAssetBalance(
-    userAddress as `0x${string}`,
-    assetAddress
-  );
-  const assetAllocation = useGetAssetAllocation(
-    userAddress as `0x${string}`,
-    assetAddress
-  );
+  const balance = Number(formatEther(position.amount));
+  const positionValue = Number(formatEther(position.value));
+  const entryPrice = Number(formatEther(position.entryPrice));
+  const currentPrice = Number(formatEther(position.currentPrice));
 
-  const balance = assetBalance.data
-    ? Number(formatEther(assetBalance.data as bigint))
-    : 0;
-  const allocation = assetAllocation.data ? Number(assetAllocation.data) : 0;
+  // Calculate price change percentage
+  const priceChange = entryPrice > 0 ? ((currentPrice - entryPrice) / entryPrice) * 100 : 0;
+  const isPositive = priceChange > 0;
 
-  // Mock asset info - in real implementation, you'd fetch this from asset registry
-  const getAssetInfo = (address: string) => {
-    const mockAssets: Record<
-      string,
-      { name: string; symbol: string; type: string; price: number }
-    > = {
-      [address.toLowerCase()]: {
-        name: "Real Estate Token",
-        symbol: "RET",
-        type: "Real Estate",
-        price: 100,
-      },
+  // Get asset type icon and info
+  const getAssetTypeInfo = (assetType: number) => {
+    const types = {
+      0: { name: "Gold", icon: "🥇" },
+      1: { name: "Silver", icon: "🥈" },
+      2: { name: "Real Estate", icon: "🏠" },
+      3: { name: "Art", icon: "🎨" },
+      4: { name: "Oil", icon: "🛢️" },
+      5: { name: "Custom", icon: "❓" },
     };
-    return (
-      mockAssets[address.toLowerCase()] || {
-        name: "Unknown Asset",
-        symbol: "UNK",
-        type: "Custom",
-        price: 0,
-      }
-    );
+    return types[assetType as keyof typeof types] || { name: "Unknown", icon: "❓" };
   };
 
-  const assetInfo = getAssetInfo(assetAddress);
-  const value = balance * assetInfo.price;
-  const change = Math.random() * 20 - 10;
+  // Use contract data if available, otherwise fallback to loading state
+  const assetInfo = contractAssetInfo ? {
+    name: (contractAssetInfo as ContractAssetInfo).name,
+    symbol: (contractAssetInfo as ContractAssetInfo).symbol,
+    type: getAssetTypeInfo((contractAssetInfo as ContractAssetInfo).assetType).name,
+    icon: getAssetTypeInfo((contractAssetInfo as ContractAssetInfo).assetType).icon,
+    price: Number(formatEther((contractAssetInfo as ContractAssetInfo).pricePerToken))
+  } : {
+    name: isLoading ? "Loading..." : "Unknown Asset",
+    symbol: isLoading ? "..." : "UNK",
+    type: "Unknown",
+    icon: "❓",
+    price: 0
+  };
+
+  const allocation = 25; // Mock allocation percentage - could be calculated from portfolio total
 
   return (
     <div className="p-4 bg-gray-900/50 rounded-lg border border-gray-800 hover:border-gray-700 transition-colors">
@@ -110,7 +127,7 @@ function PositionItem({
             <div>
               <p className="text-gray-400">Value (USD)</p>
               <p className="text-green-400 font-medium">
-                {showBalance ? `$${value.toFixed(2)}` : "••••••"}
+                {showBalance ? `$${positionValue.toFixed(2)}` : "••••••"}
               </p>
             </div>
             <div>
@@ -122,18 +139,18 @@ function PositionItem({
             <div>
               <p className="text-gray-400">24h Change</p>
               <div className="flex items-center gap-1">
-                {change >= 0 ? (
+                {priceChange >= 0 ? (
                   <TrendingUp className="h-3 w-3 text-green-400" />
                 ) : (
                   <TrendingDown className="h-3 w-3 text-red-400" />
                 )}
                 <p
                   className={`font-medium ${
-                    change >= 0 ? "text-green-400" : "text-red-400"
+                    priceChange >= 0 ? "text-green-400" : "text-red-400"
                   }`}
                 >
-                  {change >= 0 ? "+" : ""}
-                  {change.toFixed(2)}%
+                  {priceChange >= 0 ? "+" : ""}
+                  {priceChange.toFixed(2)}%
                 </p>
               </div>
             </div>
@@ -141,25 +158,19 @@ function PositionItem({
         </div>
 
         <DropdownMenu>
-          <DropdownMenuTrigger>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-gray-400 hover:text-white"
-            >
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
+          <DropdownMenuTrigger className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 px-3 text-gray-400 hover:text-white">
+            <MoreHorizontal className="h-4 w-4" />
           </DropdownMenuTrigger>
           <DropdownMenuContent className="bg-gray-900 border-gray-700">
             <DropdownMenuItem
-              onClick={() => onAddPosition(assetAddress)}
+              onClick={() => onAddPosition(position.tokenAddress as `0x${string}`)}
               className="text-green-400 hover:text-green-300 hover:bg-gray-800"
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Position
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={() => onRemovePosition(assetAddress)}
+              onClick={() => onRemovePosition(position.tokenAddress as `0x${string}`)}
               className="text-red-400 hover:text-red-300 hover:bg-gray-800"
             >
               <Minus className="h-4 w-4 mr-2" />
@@ -174,7 +185,7 @@ function PositionItem({
 
 export function ActivePositions({ showBalance }: ActivePositionsProps) {
   const { address: userAddress } = useAccount();
-  const { useGetUserAssets, addAsset, addPosition, removeAsset, removePosition, isPending } =
+  const { useGetActivePositions, addPosition, removePosition, isPending } =
     usePortfolioManager();
   const [showAddModal, setShowAddModal] = useState(false);
   const [newPosition, setNewPosition] = useState({
@@ -208,14 +219,18 @@ export function ActivePositions({ showBalance }: ActivePositionsProps) {
     },
   ];
 
-  const userAssets = useGetUserAssets(userAddress as `0x${string}`);
-  const assets = (userAssets.data as `0x${string}`[]) || [];
+  const activePositions = useGetActivePositions(userAddress as `0x${string}`);
+  const positions = (activePositions.data as Position[]) || [];
+
+
 
   const handleAddPosition = (assetAddress?: `0x${string}`) => {
-    if (assetAddress) {
+    if (assetAddress && userAddress) {
       // Quick add for existing positions
       const amount = BigInt("1000000000000000000"); // 1 token in wei
-      addAsset(assetAddress, amount);
+      const averagePrice = BigInt("1000000000000000000"); // 1 ETH in wei
+      addPosition(userAddress, assetAddress, amount, averagePrice);
+      toast.success("Position added successfully!");
     } else {
       // Show modal for new positions
       setShowAddModal(true);
@@ -325,11 +340,11 @@ export function ActivePositions({ showBalance }: ActivePositionsProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {assets.length > 0 ? (
-            assets.map((assetAddress, index) => (
+          {positions.length > 0 ? (
+            positions.map((position, index) => (
               <PositionItem
-                key={`${assetAddress}-${index}`}
-                assetAddress={assetAddress}
+                key={`${position.tokenAddress}-${index}`}
+                position={position}
                 showBalance={showBalance}
                 onAddPosition={handleAddPosition}
                 onRemovePosition={handleRemovePosition}

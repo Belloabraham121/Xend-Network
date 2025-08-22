@@ -46,7 +46,7 @@ contract PortfolioManager is
         uint256 timestamp;
         uint256 cumulativeReturn; // Scaled by 10000 for precision
     }
-    
+
     mapping(address => PerformanceSnapshot[]) public performanceHistory;
     mapping(address => uint256) public portfolioCreationTime;
     uint256 public constant PERFORMANCE_PRECISION = 10000; // 100.00%
@@ -156,11 +156,13 @@ contract PortfolioManager is
 
             // Initialize performance tracking
             portfolioCreationTime[user] = block.timestamp;
-            performanceHistory[user].push(PerformanceSnapshot({
-                totalValue: 0,
-                timestamp: block.timestamp,
-                cumulativeReturn: PERFORMANCE_PRECISION // 100% (no gain/loss initially)
-            }));
+            performanceHistory[user].push(
+                PerformanceSnapshot({
+                    totalValue: 0,
+                    timestamp: block.timestamp,
+                    cumulativeReturn: PERFORMANCE_PRECISION // 100% (no gain/loss initially)
+                })
+            );
 
             emit PortfolioCreated(user, block.timestamp);
         }
@@ -528,7 +530,7 @@ contract PortfolioManager is
 
         portfolios[user].totalValue = totalValue;
         portfolios[user].riskScore = riskScore;
-        
+
         // Take performance snapshot if enough time has passed (1 hour minimum)
         PerformanceSnapshot[] storage history = performanceHistory[user];
         if (history.length > 0) {
@@ -538,19 +540,22 @@ contract PortfolioManager is
             }
         }
     }
-    
+
     /**
      * @dev Internal function to take performance snapshot
      * @param user The user address
      * @param currentValue Current portfolio value
      */
-    function _takePerformanceSnapshotInternal(address user, uint256 currentValue) internal {
+    function _takePerformanceSnapshotInternal(
+        address user,
+        uint256 currentValue
+    ) internal {
         PerformanceSnapshot[] storage history = performanceHistory[user];
-        
+
         // Calculate cumulative return since inception
         uint256 initialValue = history[0].totalValue;
         uint256 cumulativeReturn;
-        
+
         if (initialValue == 0) {
             // First real snapshot after portfolio creation
             cumulativeReturn = PERFORMANCE_PRECISION;
@@ -558,17 +563,26 @@ contract PortfolioManager is
             history[0].totalValue = currentValue;
         } else {
             // Calculate return: (current_value / initial_value) * 100%
-            cumulativeReturn = (currentValue * PERFORMANCE_PRECISION) / initialValue;
+            cumulativeReturn =
+                (currentValue * PERFORMANCE_PRECISION) /
+                initialValue;
         }
-        
+
         // Add new snapshot
-        history.push(PerformanceSnapshot({
-            totalValue: currentValue,
-            timestamp: block.timestamp,
-            cumulativeReturn: cumulativeReturn
-        }));
-        
-        emit PerformanceSnapshotTaken(user, currentValue, cumulativeReturn, block.timestamp);
+        history.push(
+            PerformanceSnapshot({
+                totalValue: currentValue,
+                timestamp: block.timestamp,
+                cumulativeReturn: cumulativeReturn
+            })
+        );
+
+        emit PerformanceSnapshotTaken(
+            user,
+            currentValue,
+            cumulativeReturn,
+            block.timestamp
+        );
     }
 
     /**
@@ -649,9 +663,14 @@ contract PortfolioManager is
      * @param user The user address
      * @return diversificationScore Score from 0-100 (100 = perfectly diversified)
      */
-    function getDiversificationScore(address user) external view returns (uint256 diversificationScore) {
-        require(portfolios[user].owner != address(0), "Portfolio does not exist");
-        
+    function getDiversificationScore(
+        address user
+    ) external view returns (uint256 diversificationScore) {
+        require(
+            portfolios[user].owner != address(0),
+            "Portfolio does not exist"
+        );
+
         address[] memory assets = userAssets[user];
         if (assets.length == 0) {
             return 0;
@@ -664,13 +683,15 @@ contract PortfolioManager is
 
         // Calculate HHI by asset type
         uint256[6] memory typeValues; // Array for 6 asset types
-        
+
         // Sum values by asset type
         for (uint256 i = 0; i < assets.length; i++) {
             IDataTypes.Position memory position = positions[user][assets[i]];
             if (position.isActive && position.amount > 0) {
-                IDataTypes.AssetInfo memory assetInfo = assetFactory.getAssetInfo(position.tokenAddress);
-                uint256 positionValue = position.amount * assetInfo.pricePerToken;
+                IDataTypes.AssetInfo memory assetInfo = assetFactory
+                    .getAssetInfo(position.tokenAddress);
+                uint256 positionValue = position.amount *
+                    assetInfo.pricePerToken;
                 typeValues[uint256(assetInfo.assetType)] += positionValue;
             }
         }
@@ -692,7 +713,7 @@ contract PortfolioManager is
         if (hhi <= 1667) {
             return 100; // Perfectly diversified
         }
-        
+
         uint256 normalizedHHI = ((hhi - 1667) * 100) / (10000 - 1667);
         return 100 - normalizedHHI;
     }
@@ -702,8 +723,13 @@ contract PortfolioManager is
      * @param user The user address
      * @return riskScore The calculated risk score
      */
-    function getRiskScore(address user) external view returns (uint256 riskScore) {
-        require(portfolios[user].owner != address(0), "Portfolio does not exist");
+    function getRiskScore(
+        address user
+    ) external view returns (uint256 riskScore) {
+        require(
+            portfolios[user].owner != address(0),
+            "Portfolio does not exist"
+        );
         return portfolios[user].riskScore;
     }
 
@@ -712,9 +738,14 @@ contract PortfolioManager is
      * @param user The user address
      * @return allocations Array of allocation percentages by asset type (scaled by 100)
      */
-    function getAssetAllocation(address user) external view returns (uint256[6] memory allocations) {
-        require(portfolios[user].owner != address(0), "Portfolio does not exist");
-        
+    function getAssetAllocation(
+        address user
+    ) external view returns (uint256[6] memory allocations) {
+        require(
+            portfolios[user].owner != address(0),
+            "Portfolio does not exist"
+        );
+
         address[] memory assets = userAssets[user];
         if (assets.length == 0) {
             return allocations; // Returns array of zeros
@@ -726,13 +757,15 @@ contract PortfolioManager is
         }
 
         uint256[6] memory typeValues;
-        
+
         // Sum values by asset type
         for (uint256 i = 0; i < assets.length; i++) {
             IDataTypes.Position memory position = positions[user][assets[i]];
             if (position.isActive && position.amount > 0) {
-                IDataTypes.AssetInfo memory assetInfo = assetFactory.getAssetInfo(position.tokenAddress);
-                uint256 positionValue = position.amount * assetInfo.pricePerToken;
+                IDataTypes.AssetInfo memory assetInfo = assetFactory
+                    .getAssetInfo(position.tokenAddress);
+                uint256 positionValue = position.amount *
+                    assetInfo.pricePerToken;
                 typeValues[uint256(assetInfo.assetType)] += positionValue;
             }
         }
@@ -752,34 +785,46 @@ contract PortfolioManager is
      * @param user The user address
      */
     function takePerformanceSnapshot(address user) external {
-        require(portfolios[user].owner != address(0), "Portfolio does not exist");
-        
+        require(
+            portfolios[user].owner != address(0),
+            "Portfolio does not exist"
+        );
+
         uint256 currentValue = this.getTotalValue(user);
         uint256 currentTime = block.timestamp;
-        
+
         PerformanceSnapshot[] storage history = performanceHistory[user];
         require(history.length > 0, "No performance history found");
-        
+
         // Calculate cumulative return since inception
         uint256 initialValue = history[0].totalValue;
         uint256 cumulativeReturn;
-        
+
         if (initialValue == 0) {
             // First real snapshot after portfolio creation
             cumulativeReturn = PERFORMANCE_PRECISION;
         } else {
             // Calculate return: (current_value / initial_value) * 100%
-            cumulativeReturn = (currentValue * PERFORMANCE_PRECISION) / initialValue;
+            cumulativeReturn =
+                (currentValue * PERFORMANCE_PRECISION) /
+                initialValue;
         }
-        
+
         // Add new snapshot
-        history.push(PerformanceSnapshot({
-            totalValue: currentValue,
-            timestamp: currentTime,
-            cumulativeReturn: cumulativeReturn
-        }));
-        
-        emit PerformanceSnapshotTaken(user, currentValue, cumulativeReturn, currentTime);
+        history.push(
+            PerformanceSnapshot({
+                totalValue: currentValue,
+                timestamp: currentTime,
+                cumulativeReturn: cumulativeReturn
+            })
+        );
+
+        emit PerformanceSnapshotTaken(
+            user,
+            currentValue,
+            cumulativeReturn,
+            currentTime
+        );
     }
 
     /**
@@ -790,72 +835,87 @@ contract PortfolioManager is
      * @return volatility Portfolio volatility (scaled by 10000)
      * @return sharpeRatio Sharpe ratio (scaled by 10000)
      */
-    function getPortfolioPerformance(address user) 
-        external 
-        view 
+    function getPortfolioPerformance(
+        address user
+    )
+        external
+        view
         returns (
             uint256 totalReturn,
             uint256 annualizedReturn,
             uint256 volatility,
             uint256 sharpeRatio
-        ) 
+        )
     {
-        require(portfolios[user].owner != address(0), "Portfolio does not exist");
-        
+        require(
+            portfolios[user].owner != address(0),
+            "Portfolio does not exist"
+        );
+
         PerformanceSnapshot[] storage history = performanceHistory[user];
         require(history.length >= 2, "Insufficient performance data");
-        
+
         // Calculate total return
         uint256 latestReturn = history[history.length - 1].cumulativeReturn;
-        totalReturn = latestReturn > PERFORMANCE_PRECISION ? 
-            latestReturn - PERFORMANCE_PRECISION : 0;
-        
+        totalReturn = latestReturn > PERFORMANCE_PRECISION
+            ? latestReturn - PERFORMANCE_PRECISION
+            : 0;
+
         // Calculate time elapsed in years (scaled)
         uint256 timeElapsed = block.timestamp - portfolioCreationTime[user];
         uint256 yearsElapsed = (timeElapsed * PERFORMANCE_PRECISION) / 365 days;
-        
+
         if (yearsElapsed == 0) {
             annualizedReturn = totalReturn;
         } else {
             // Annualized return = (1 + total_return)^(1/years) - 1
             // Simplified: total_return / years for small returns
-            annualizedReturn = (totalReturn * PERFORMANCE_PRECISION) / yearsElapsed;
+            annualizedReturn =
+                (totalReturn * PERFORMANCE_PRECISION) /
+                yearsElapsed;
         }
-        
+
         // Calculate volatility (standard deviation of returns)
         if (history.length >= 3) {
             uint256 sumSquaredDeviations = 0;
             uint256 meanReturn = 0;
-            
+
             // Calculate period returns
             uint256[] memory periodReturns = new uint256[](history.length - 1);
             for (uint256 i = 1; i < history.length; i++) {
-                if (history[i-1].totalValue > 0) {
-                    periodReturns[i-1] = (history[i].totalValue * PERFORMANCE_PRECISION) / history[i-1].totalValue;
-                    meanReturn += periodReturns[i-1];
+                if (history[i - 1].totalValue > 0) {
+                    periodReturns[i - 1] =
+                        (history[i].totalValue * PERFORMANCE_PRECISION) /
+                        history[i - 1].totalValue;
+                    meanReturn += periodReturns[i - 1];
                 } else {
-                    periodReturns[i-1] = PERFORMANCE_PRECISION;
+                    periodReturns[i - 1] = PERFORMANCE_PRECISION;
                     meanReturn += PERFORMANCE_PRECISION;
                 }
             }
             meanReturn = meanReturn / (history.length - 1);
-            
+
             // Calculate variance
             for (uint256 i = 0; i < periodReturns.length; i++) {
-                uint256 deviation = periodReturns[i] > meanReturn ? 
-                    periodReturns[i] - meanReturn : meanReturn - periodReturns[i];
-                sumSquaredDeviations += (deviation * deviation) / PERFORMANCE_PRECISION;
+                uint256 deviation = periodReturns[i] > meanReturn
+                    ? periodReturns[i] - meanReturn
+                    : meanReturn - periodReturns[i];
+                sumSquaredDeviations +=
+                    (deviation * deviation) /
+                    PERFORMANCE_PRECISION;
             }
-            
+
             volatility = sqrt(sumSquaredDeviations / (history.length - 1));
         }
-        
+
         // Calculate Sharpe ratio (assuming risk-free rate of 3%)
         uint256 riskFreeRate = 300; // 3% scaled by 10000
         if (volatility > 0 && annualizedReturn > riskFreeRate) {
-            sharpeRatio = ((annualizedReturn - riskFreeRate) * PERFORMANCE_PRECISION) / volatility;
+            sharpeRatio =
+                ((annualizedReturn - riskFreeRate) * PERFORMANCE_PRECISION) /
+                volatility;
         }
-        
+
         return (totalReturn, annualizedReturn, volatility, sharpeRatio);
     }
 
@@ -864,12 +924,13 @@ contract PortfolioManager is
      * @param user The user address
      * @return snapshots Array of performance snapshots
      */
-    function getPerformanceHistory(address user) 
-        external 
-        view 
-        returns (PerformanceSnapshot[] memory snapshots) 
-    {
-        require(portfolios[user].owner != address(0), "Portfolio does not exist");
+    function getPerformanceHistory(
+        address user
+    ) external view returns (PerformanceSnapshot[] memory snapshots) {
+        require(
+            portfolios[user].owner != address(0),
+            "Portfolio does not exist"
+        );
         return performanceHistory[user];
     }
 
