@@ -82,6 +82,15 @@ export function usePortfolioManager() {
     });
   };
 
+  const useCalculateRiskScore = (user: Address) => {
+    return useReadContract({
+      address: contractAddress,
+      abi: PortfolioManagerABI,
+      functionName: "calculateRiskScore",
+      args: [user],
+    });
+  };
+
   // Write contract hook
   const { writeContract, isPending, error } = useWriteContract();
 
@@ -95,6 +104,36 @@ export function usePortfolioManager() {
     });
   };
 
+  // Add position to portfolio
+  const addPosition = (
+    user: Address,
+    asset: Address,
+    amount: bigint,
+    averagePrice: bigint
+  ) => {
+    writeContract({
+      address: contractAddress,
+      abi: PortfolioManagerABI,
+      functionName: "addPosition",
+      args: [user, asset, amount, averagePrice],
+    });
+  };
+
+  // Update position in portfolio
+  const updatePosition = (
+    user: Address,
+    asset: Address,
+    newAmount: bigint,
+    newAveragePrice: bigint
+  ) => {
+    writeContract({
+      address: contractAddress,
+      abi: PortfolioManagerABI,
+      functionName: "updatePosition",
+      args: [user, asset, newAmount, newAveragePrice],
+    });
+  };
+
   // Remove asset from portfolio
   const removeAsset = (asset: Address, amount: bigint) => {
     writeContract({
@@ -105,7 +144,17 @@ export function usePortfolioManager() {
     });
   };
 
-  // Rebalance portfolio
+  // Remove position from portfolio
+  const removePosition = (user: Address, asset: Address) => {
+    writeContract({
+      address: contractAddress,
+      abi: PortfolioManagerABI,
+      functionName: "removePosition",
+      args: [user, asset],
+    });
+  };
+
+  // Rebalance portfolio (original function with target allocations)
   const rebalancePortfolio = (
     targetAllocations: Address[],
     targetPercentages: number[]
@@ -115,6 +164,16 @@ export function usePortfolioManager() {
       abi: PortfolioManagerABI,
       functionName: "rebalancePortfolio",
       args: [targetAllocations, targetPercentages],
+    });
+  };
+
+  // Rebalance portfolio for a specific user (from smart contract)
+  const rebalanceUserPortfolio = (user: Address) => {
+    writeContract({
+      address: contractAddress,
+      abi: PortfolioManagerABI,
+      functionName: "rebalancePortfolio",
+      args: [user],
     });
   };
 
@@ -167,11 +226,16 @@ export function usePortfolioManager() {
     useGetPortfolioPerformance,
     useGetDiversificationScore,
     useGetRiskScore,
+    useCalculateRiskScore,
 
     // Write functions
     addAsset,
+    addPosition,
+    updatePosition,
     removeAsset,
+    removePosition,
     rebalancePortfolio,
+    rebalanceUserPortfolio,
     setAllocationTarget,
     updateStrategy,
     executeRebalancing,

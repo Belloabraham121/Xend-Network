@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
 interface DashboardMainProps {
-  activeTab: string
-  children: React.ReactNode
+  activeTab: string;
+  children: React.ReactNode;
 }
 
 export function DashboardMain({ activeTab, children }: DashboardMainProps) {
@@ -34,11 +34,17 @@ export function DashboardMain({ activeTab, children }: DashboardMainProps) {
         title: "Rewards Center",
         description: "Manage your staking rewards and yields",
       },
-    }
-    return tabInfo[tab as keyof typeof tabInfo] || { title: tab, description: "" }
-  }
+      portfolio: {
+        title: "Portfolio Management",
+        description: "Advanced portfolio analytics, risk management, and optimization tools",
+      },
+    };
+    return (
+      tabInfo[tab as keyof typeof tabInfo] || { title: tab, description: "" }
+    );
+  };
 
-  const { title, description } = getTabInfo(activeTab)
+  const { title, description } = getTabInfo(activeTab);
 
   return (
     <main className="flex-1 bg-black min-h-screen">
@@ -46,7 +52,9 @@ export function DashboardMain({ activeTab, children }: DashboardMainProps) {
         <div className="max-w-7xl mx-auto">
           {/* Page Header */}
           <div className="mb-8">
-            <h1 className="text-4xl lg:text-5xl font-bold text-white mb-3">{title}</h1>
+            <h1 className="text-4xl lg:text-5xl font-bold text-white mb-3">
+              {title}
+            </h1>
             <p className="text-lg text-gray-400 max-w-2xl">{description}</p>
           </div>
 
@@ -55,5 +63,5 @@ export function DashboardMain({ activeTab, children }: DashboardMainProps) {
         </div>
       </div>
     </main>
-  )
+  );
 }

@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PortfolioCard } from "../ui/portfolio-card";
 import { TransactionItem } from "../ui/transaction-item";
 import { PredefinedRWATokens } from "../ui/predefined-rwa-tokens";
+import { PortfolioOverview } from "../ui/portfolio-overview";
+import { ActivePositions } from "../ui/active-positions";
 import { useAccount } from "wagmi";
 import { usePortfolioManager } from "@/hooks/usePortfolioManager";
 
@@ -213,10 +215,19 @@ export function DashboardTab() {
 
   return (
     <div className="space-y-8">
-      {/* Portfolio Overview */}
+      {/* Enhanced Portfolio Overview */}
+      <PortfolioOverview 
+        showBalance={showBalance} 
+        onToggleBalance={() => setShowBalance(!showBalance)} 
+      />
+
+      {/* Enhanced Active Positions */}
+      <ActivePositions showBalance={showBalance} />
+
+      {/* Legacy Portfolio Overview - keeping for comparison */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <PortfolioCard
-           title="Total Portfolio Value"
+           title="Legacy Total Value"
            value={showBalance ? `$${formatLargeNumber(totalValue)}` : "••••••"}
            change={`${totalTokenCount} RWA tokens`}
            changeType="positive"
@@ -236,7 +247,7 @@ export function DashboardTab() {
          </PortfolioCard>
 
         <PortfolioCard
-          title="Active Positions"
+          title="Legacy Active Positions"
           value={assetInfos.length.toString()}
           change={`Across ${
             new Set(assetInfos.map((info) => info.metadata.assetType)).size

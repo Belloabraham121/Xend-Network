@@ -62,12 +62,13 @@ function RWAAssetRow({ assetAddress }: RWAAssetRowProps) {
       4: "/icons/energy.svg", // Oil/Energy
       5: "/icons/custom.svg", // Custom
     };
-    const iconPath = icons[assetType as keyof typeof icons] || "/icons/custom.svg";
+    const iconPath =
+      icons[assetType as keyof typeof icons] || "/icons/custom.svg";
     return (
-      <img 
-        src={iconPath} 
-        alt={getAssetTypeLabel(assetType)} 
-        className="w-6 h-6" 
+      <img
+        src={iconPath}
+        alt={getAssetTypeLabel(assetType)}
+        className="w-6 h-6"
       />
     );
   };
@@ -78,11 +79,13 @@ function RWAAssetRow({ assetAddress }: RWAAssetRowProps) {
   useEffect(() => {
     const fetchEthPrice = async () => {
       try {
-        const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
+        const response = await fetch(
+          "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd"
+        );
         const data = await response.json();
         setEthToUsd(data.ethereum.usd);
       } catch (error) {
-        console.error('Failed to fetch ETH price:', error);
+        console.error("Failed to fetch ETH price:", error);
         // Fallback to approximate ETH price if API fails
         setEthToUsd(2500);
       }
@@ -145,7 +148,9 @@ function RWAAssetRow({ assetAddress }: RWAAssetRowProps) {
     <tr className="border-b border-gray-800 hover:bg-gray-900/50 transition-colors">
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-8 h-8">{getAssetIcon(info.assetType)}</div>
+          <div className="flex items-center justify-center w-8 h-8">
+            {getAssetIcon(info.assetType)}
+          </div>
           <div>
             <div className="font-semibold text-white">{info.name}</div>
             <div className="text-sm text-gray-400">{info.symbol}</div>

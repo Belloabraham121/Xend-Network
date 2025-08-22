@@ -37,6 +37,7 @@ export function DashboardSidebar({
 }: DashboardSidebarProps) {
   const tabs: Tab[] = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "portfolio", label: "Portfolio", icon: TrendingUp },
     { id: "ai-insights", label: "AI Insights", icon: Brain },
     { id: "blend", label: "Blend", icon: Shuffle },
     { id: "swap", label: "Swap", icon: ArrowLeftRight },
