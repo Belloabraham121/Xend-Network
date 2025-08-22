@@ -28,19 +28,19 @@ interface Token {
 // Mock implementations to replace removed hooks
 const mockTokens: Token[] = [
   {
-    symbol: "HVGOLD",
+    symbol: "GOLD",
     address: "0x1234567890123456789012345678901234567890",
     name: "Gold Token",
     type: "GOLD",
   },
   {
-    symbol: "HVSILVER",
+    symbol: "SILVER",
     address: "0x2345678901234567890123456789012345678901",
     name: "Silver Token",
     type: "SILVER",
   },
   {
-    symbol: "HVRE",
+    symbol: "RE",
     address: "0x3456789012345678901234567890123456789012",
     name: "Real Estate Token",
     type: "REALESTATE",
@@ -85,9 +85,9 @@ export function SwapTab() {
   // Filter tokens to show all available RWA tokens (HVGOLD, HVSILVER, HVRE)
   const supportedTokens: Token[] = tokens.filter(
     (token) =>
-      token.symbol === "HVGOLD" ||
-      token.symbol === "HVSILVER" ||
-      token.symbol === "HVRE"
+      token.symbol === "GOLD" ||
+      token.symbol === "SILVER" ||
+      token.symbol === "RE"
   );
 
   // Log available tokens for debugging
@@ -176,14 +176,6 @@ export function SwapTab() {
     poolId: string
   ) => {
     console.log("Mock: Pool data saved", { tokenA, tokenB, poolId });
-  };
-
-  const getPoolFromLocalStorage = (
-    tokenA: string,
-    tokenB: string
-  ): PoolData | undefined => {
-    console.log("Mock: Getting pool from storage", { tokenA, tokenB });
-    return undefined; // No pools in mock
   };
 
   // Log token support status
@@ -393,7 +385,6 @@ export function SwapTab() {
   const poolLoading = false;
 
   // Mock pool data checking (localStorage removed)
-  const localPoolData = null; // No localStorage data
 
   // Use mock pool ID
   const knownPoolId = BigInt(
