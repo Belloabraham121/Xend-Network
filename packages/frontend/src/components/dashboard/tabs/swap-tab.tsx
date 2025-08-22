@@ -176,15 +176,15 @@ export function SwapTab() {
     poolId: string
   ) => {
     console.log("Mock: Pool data saved", { tokenA, tokenB, poolId });
-      };
+  };
 
-      const getPoolFromLocalStorage = (
-        tokenA: string,
-        tokenB: string
-      ): PoolData | undefined => {
-        console.log("Mock: Getting pool from storage", { tokenA, tokenB });
-        return undefined; // No pools in mock
-      };
+  const getPoolFromLocalStorage = (
+    tokenA: string,
+    tokenB: string
+  ): PoolData | undefined => {
+    console.log("Mock: Getting pool from storage", { tokenA, tokenB });
+    return undefined; // No pools in mock
+  };
 
   // Log token support status
   useEffect(() => {
@@ -339,7 +339,8 @@ export function SwapTab() {
   useEffect(() => {
     if (createPoolError) {
       console.error("❌ Pool creation failed:", createPoolError);
-      const errorMessage = (createPoolError as Error).message || "Unknown error occurred";
+      const errorMessage =
+        (createPoolError as Error).message || "Unknown error occurred";
 
       if (errorMessage.includes("INSUFFICIENT_GAS")) {
         toast.error(
@@ -387,7 +388,7 @@ export function SwapTab() {
   ]);
 
   // Mock pool data
-  const poolData: any[] | null = null; // No pool exists initially
+  const poolData: bigint[] | null = null; // No pool exists initially
   const poolError: Error | null = null;
   const poolLoading = false;
 
@@ -433,8 +434,8 @@ export function SwapTab() {
     poolId: poolId.toString(),
     hasValidPool: poolId > BigInt(0),
     originalPoolData:
-      poolData && Array.isArray(poolData) && poolData.length > 0
-        ? poolData[0].toString()
+      poolData && Array.isArray(poolData) && (poolData as bigint[]).length > 0
+        ? (poolData[0] as bigint).toString()
         : "none",
     poolExists: poolId > BigInt(0),
   });
@@ -445,7 +446,8 @@ export function SwapTab() {
     priceImpact: bigint;
     fee: bigint;
   }
-  
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const quoteData: QuoteData | null = debouncedFromValue
     ? {
         amountOut: parseUnits(
@@ -486,12 +488,12 @@ export function SwapTab() {
       fromTokenExists: !!fromTokenAddress,
       poolIdValid: poolId > BigInt(0),
       errorDetails: quoteError
-          ? {
-              name: (quoteError as Error).name,
-              message: (quoteError as Error).message,
-              cause: (quoteError as Error & { cause?: unknown }).cause,
-            }
-          : null,
+        ? {
+            name: (quoteError as Error).name,
+            message: (quoteError as Error).message,
+            cause: (quoteError as Error & { cause?: unknown }).cause,
+          }
+        : null,
     });
   }, [
     quoteData,
@@ -793,7 +795,10 @@ export function SwapTab() {
         setPendingSwapAmount(fromValue);
 
         // Request approval for the swap amount (following blend-tab pattern)
-        tokenApproval.approve(CONTRACT_ADDRESSES.SwapEngine as `0x${string}`, amountIn);
+        tokenApproval.approve(
+          CONTRACT_ADDRESSES.SwapEngine as `0x${string}`,
+          amountIn
+        );
         toast.info(
           "Please sign the token approval transaction in your wallet."
         );
@@ -1304,7 +1309,9 @@ export function SwapTab() {
                   <h4 className="font-semibold text-white mb-1">
                     {token.symbol}
                   </h4>
-                  <p className="text-xs text-gray-400">{token.category || "RWA"}</p>
+                  <p className="text-xs text-gray-400">
+                    {token.category || "RWA"}
+                  </p>
                   <div className="text-xs text-gray-500 mt-2 font-mono">
                     {token.address.slice(0, 6)}...{token.address.slice(-4)}
                   </div>
