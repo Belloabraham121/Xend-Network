@@ -250,7 +250,6 @@ export function usePortfolioManager() {
       abi: PortfolioManagerABI,
       functionName: "addPosition",
       args: [user, asset, amount, averagePrice],
-      gas: BigInt(85000000),
     });
   };
 
