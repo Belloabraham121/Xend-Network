@@ -10,7 +10,7 @@ node_modules/
 
 # Testing
 coverage/
-
+.trae/
 # Next.js
 .next/
 out/
