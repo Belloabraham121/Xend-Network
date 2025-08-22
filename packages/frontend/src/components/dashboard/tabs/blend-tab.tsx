@@ -9,22 +9,22 @@ import { Label } from "@/components/ui/label";
 // Removed Select imports - using native select elements
 import { toast } from "sonner";
 import { Address, parseEther } from "viem";
+import { useLendingPool } from "@/hooks/useLendingPool";
+import { useERC20 } from "@/hooks/useERC20";
+import { CONTRACTS } from "@/config/contracts";
+import { useAccount } from "wagmi";
 
 // Helper function to replace formatEther
 const formatEther = (value: bigint): string => {
   return (Number(value) / 1e18).toString();
 };
 
-// Mock contract addresses
-const CONTRACT_ADDRESSES = {
-  LendingPool: "0x0000000000000000000000000000000000000000" as Address,
-};
-
 // RWA Token addresses from deployment
 const RWA_TOKEN_ADDRESSES = {
-  GOLD: "0x0000000000000000000000000000000000636359" as Address,
-  SILVER: "0x00000000000000000000000000000000006363ad" as Address,
-  REAL_ESTATE: "0x00000000000000000000000000000000006363ba" as Address,
+  GOLD_RESERVE: "0xd3871a7653073f2c8e4ed9d8d798303586a44f55" as Address,
+  PREMIUM_REAL_ESTATE: "0xad95399b7dddf51145e7fd5735c865e474c5c010" as Address,
+  DIGITAL_ART: "0x91755aee9e26355aea0b102e48a46d0918490d4f" as Address,
+  RENEWABLE_ENERGY: "0xf7be754c0efea6e0cdd5a511770996af4769e6d6" as Address,
 };
 
 export function BlendTab() {
@@ -35,12 +35,12 @@ export function BlendTab() {
   const [collateralAmount, setCollateralAmount] = useState("");
   const [repayAmount, setRepayAmount] = useState("");
   const [selectedToken, setSelectedToken] = useState<Address>(
-    RWA_TOKEN_ADDRESSES.GOLD
+    RWA_TOKEN_ADDRESSES.GOLD_RESERVE
   );
   const [selectedCollateralToken, setSelectedCollateralToken] =
-    useState<Address>(RWA_TOKEN_ADDRESSES.REAL_ESTATE);
+    useState<Address>(RWA_TOKEN_ADDRESSES.PREMIUM_REAL_ESTATE);
   const [selectedBorrowToken, setSelectedBorrowToken] = useState<Address>(
-    RWA_TOKEN_ADDRESSES.GOLD
+    RWA_TOKEN_ADDRESSES.GOLD_RESERVE
   );
   const [selectedLoanId, setSelectedLoanId] = useState("");
   const [isApprovalInProgress, setIsApprovalInProgress] = useState(false);
@@ -50,473 +50,355 @@ export function BlendTab() {
   const [goldLentAmount, setGoldLentAmount] = useState(0);
   const [realEstateLentAmount, setRealEstateLentAmount] = useState(0);
   const [invoiceLentAmount, setInvoiceLentAmount] = useState(0);
+  const pendingDepositTokenRef = useRef<Address>(
+    RWA_TOKEN_ADDRESSES.GOLD_RESERVE
+  );
   const pendingDepositAmountRef = useRef<string>("");
-  const pendingDepositTokenRef = useRef<Address>(RWA_TOKEN_ADDRESSES.GOLD);
   const pendingWithdrawAmountRef = useRef<string>("");
-  const pendingWithdrawTokenRef = useRef<Address>(RWA_TOKEN_ADDRESSES.GOLD);
+  const pendingWithdrawTokenRef = useRef<Address>(
+    RWA_TOKEN_ADDRESSES.GOLD_RESERVE
+  );
 
-  // Mock functions for tracking individual token amounts (localStorage removed)
-  const getTokenLentFromStorage = (tokenType: string): number => {
-    return 0; // Always return 0 for mock
-  };
+  // Initialize LendingPool hooks
+  const lendingPool = useLendingPool();
 
-  const updateTokenLentInStorage = (
-    tokenType: string,
-    amount: number
-  ): void => {
-    console.log(`Mock: Updated ${tokenType} lent:`, amount);
-
-    // Update state based on token type
-    if (tokenType === "gold") setGoldLentAmount(amount);
-    else if (tokenType === "real_estate") setRealEstateLentAmount(amount);
-    else if (tokenType === "invoice") setInvoiceLentAmount(amount);
-
-    // Recalculate total
-    updateTotalFromIndividualAmounts();
-  };
-
-  const updateTotalFromIndividualAmounts = (): void => {
-    const gold = getTokenLentFromStorage("gold");
-    const realEstate = getTokenLentFromStorage("real_estate");
-    const invoice = getTokenLentFromStorage("invoice");
-    const total = gold + realEstate + invoice;
-
-    setTotalLentAmount(total);
-    console.log("Mock: Updated total lent from individual amounts:", total);
-  };
-
-  const addToTokenLent = (
-    tokenAddress: Address,
-    depositAmount: number
-  ): void => {
-    console.log(
-      "addToTokenLent called with token:",
-      tokenAddress,
-      "amount:",
-      depositAmount
-    );
-    let tokenType = "";
-    if (tokenAddress === RWA_TOKEN_ADDRESSES.GOLD) tokenType = "gold";
-    else if (tokenAddress === RWA_TOKEN_ADDRESSES.REAL_ESTATE)
-      tokenType = "real_estate";
-    else if (tokenAddress === RWA_TOKEN_ADDRESSES.SILVER) tokenType = "invoice"; // Silver mapped to Invoice for UI
-
-    console.log("Mapped token type:", tokenType);
-
-    if (tokenType) {
-      const currentAmount = getTokenLentFromStorage(tokenType);
-      const newAmount = currentAmount + depositAmount;
-      console.log(
-        `addToTokenLent called for ${tokenType} with:`,
-        depositAmount
-      );
-      console.log(`Current ${tokenType} amount:`, currentAmount);
-      console.log(`New ${tokenType} amount will be:`, newAmount);
-      updateTokenLentInStorage(tokenType, newAmount);
-
-      // Update React state to trigger UI re-render
-      if (tokenType === "gold") {
-        console.log(
-          "Updating gold lent amount from",
-          goldLentAmount,
-          "to",
-          newAmount
-        );
-        setGoldLentAmount(newAmount);
-      } else if (tokenType === "real_estate") {
-        console.log(
-          "Updating real estate lent amount from",
-          realEstateLentAmount,
-          "to",
-          newAmount
-        );
-        setRealEstateLentAmount(newAmount);
-      } else if (tokenType === "invoice") {
-        console.log(
-          "Updating invoice lent amount from",
-          invoiceLentAmount,
-          "to",
-          newAmount
-        );
-        setInvoiceLentAmount(newAmount);
-      }
-
-      // Update total amount
-      const goldAmount =
-        tokenType === "gold" ? newAmount : getTokenLentFromStorage("gold");
-      const realEstateAmount =
-        tokenType === "real_estate"
-          ? newAmount
-          : getTokenLentFromStorage("real_estate");
-      const invoiceAmount =
-        tokenType === "invoice"
-          ? newAmount
-          : getTokenLentFromStorage("invoice");
-      const newTotal = goldAmount + realEstateAmount + invoiceAmount;
-      console.log(
-        "Updating total lent amount from",
-        totalLentAmount,
-        "to",
-        newTotal
-      );
-      setTotalLentAmount(newTotal);
-    } else {
-      console.log("No token type mapped for address:", tokenAddress);
+  // Helper function to get token type from address
+  const getTokenType = (tokenAddress: Address): string => {
+    switch (tokenAddress) {
+      case RWA_TOKEN_ADDRESSES.GOLD_RESERVE:
+        return "GOLD_RESERVE";
+      case RWA_TOKEN_ADDRESSES.PREMIUM_REAL_ESTATE:
+        return "PREMIUM_REAL_ESTATE";
+      case RWA_TOKEN_ADDRESSES.DIGITAL_ART:
+        return "DIGITAL_ART";
+      case RWA_TOKEN_ADDRESSES.RENEWABLE_ENERGY:
+        return "RENEWABLE_ENERGY";
+      default:
+        return "UNKNOWN";
     }
   };
 
-  const subtractFromTokenLent = (
-    tokenAddress: Address,
-    withdrawAmount: number
-  ): void => {
-    let tokenType = "";
-    if (tokenAddress === RWA_TOKEN_ADDRESSES.GOLD) tokenType = "gold";
-    else if (tokenAddress === RWA_TOKEN_ADDRESSES.REAL_ESTATE)
-      tokenType = "real_estate";
-    else if (tokenAddress === RWA_TOKEN_ADDRESSES.SILVER) tokenType = "invoice"; // Silver mapped to Invoice for UI
-
-    if (tokenType) {
-      const currentAmount = getTokenLentFromStorage(tokenType);
-      const newAmount = Math.max(0, currentAmount - withdrawAmount);
-      updateTokenLentInStorage(tokenType, newAmount);
-
-      // Update React state to trigger UI re-render
-      if (tokenType === "gold") {
-        setGoldLentAmount(newAmount);
-      } else if (tokenType === "real_estate") {
-        setRealEstateLentAmount(newAmount);
-      } else if (tokenType === "invoice") {
-        setInvoiceLentAmount(newAmount);
-      }
-
-      // Update total amount
-      const goldAmount =
-        tokenType === "gold" ? newAmount : getTokenLentFromStorage("gold");
-      const realEstateAmount =
-        tokenType === "real_estate"
-          ? newAmount
-          : getTokenLentFromStorage("real_estate");
-      const invoiceAmount =
-        tokenType === "invoice"
-          ? newAmount
-          : getTokenLentFromStorage("invoice");
-      const newTotal = goldAmount + realEstateAmount + invoiceAmount;
-      setTotalLentAmount(newTotal);
-    }
-  };
-
-  // Mock legacy functions for backward compatibility
-  const getTotalLentFromStorage = (): number => {
-    return 0; // Always return 0 for mock
-  };
-
-  const addToTotalLent = (depositAmount: number): void => {
-    // This function is now handled by addToTokenLent
-    console.log("addToTotalLent called (legacy) with:", depositAmount);
-  };
-
-  const subtractFromTotalLent = (withdrawAmount: number): void => {
-    // This function is now handled by subtractFromTokenLent
-    console.log("subtractFromTotalLent called (legacy) with:", withdrawAmount);
-  };
-
-  // Initialize individual token amounts from local storage on component mount
-  useEffect(() => {
-    const goldAmount = getTokenLentFromStorage("gold");
-    const realEstateAmount = getTokenLentFromStorage("real_estate");
-    const invoiceAmount = getTokenLentFromStorage("invoice");
-
-    console.log("Initializing token amounts from storage:");
-    console.log("Gold:", goldAmount);
-    console.log("Real Estate:", realEstateAmount);
-    console.log("Invoice:", invoiceAmount);
-
-    setGoldLentAmount(goldAmount);
-    setRealEstateLentAmount(realEstateAmount);
-    setInvoiceLentAmount(invoiceAmount);
-
-    // Calculate and set total
-    const total = goldAmount + realEstateAmount + invoiceAmount;
-    setTotalLentAmount(total);
-
-    // Mock: Total calculated but not stored
-    console.log("Mock: Total lent calculated:", total);
-  }, []);
-
-  // Mock hook implementations
-  const deposit = {
-    write: () => {
+  // LendingPool contract interactions
+  const handleDepositAction = () => {
+    try {
+      const amount = parseEther(depositAmount);
+      lendingPool.deposit(selectedToken, amount);
       toast.success("Deposit transaction submitted!");
-      // Simulate adding to local storage
-      const amount = parseFloat(depositAmount);
-      if (amount > 0) {
-        addToTokenLent(selectedToken, amount);
-        setDepositAmount("");
-      }
-    },
-    isLoading: false,
+      setDepositAmount("");
+    } catch (error) {
+      toast.error("Invalid deposit amount");
+    }
+  };
+
+  const handleWithdrawAction = () => {
+    try {
+      const amount = parseEther(withdrawAmount);
+      lendingPool.withdraw(selectedToken, amount);
+      toast.success("Withdrawal transaction submitted!");
+      setWithdrawAmount("");
+    } catch (error) {
+      toast.error("Invalid withdrawal amount");
+    }
+  };
+
+  const handleBorrowAction = () => {
+    try {
+      const borrowAmountBigInt = parseEther(borrowAmount);
+      const collateralAmountBigInt = parseEther(collateralAmount);
+      lendingPool.borrowWithCollateral(
+        selectedBorrowToken,
+        borrowAmountBigInt,
+        selectedCollateralToken,
+        collateralAmountBigInt
+      );
+      toast.success("Borrow transaction submitted!");
+      setBorrowAmount("");
+      setCollateralAmount("");
+    } catch (error) {
+      toast.error("Invalid borrow parameters");
+    }
+  };
+
+  const handleRepayAction = () => {
+    try {
+      const amount = parseEther(repayAmount);
+      lendingPool.repay(selectedBorrowToken, amount);
+      toast.success("Repay transaction submitted!");
+      setRepayAmount("");
+    } catch (error) {
+      toast.error("Invalid repay amount");
+    }
+  };
+
+  // For backward compatibility with existing UI
+  const deposit = {
+    deposit: handleDepositAction,
+    isPending: lendingPool.isPending,
     isConfirmed: false,
-    error: null,
+    error: lendingPool.error,
   };
 
   const withdraw = {
-    write: () => {
-      toast.success("Withdrawal transaction submitted!");
-      // Simulate subtracting from local storage
-      const amount = parseFloat(withdrawAmount);
-      if (amount > 0) {
-        subtractFromTokenLent(selectedToken, amount);
-        setWithdrawAmount("");
-      }
-    },
-    isLoading: false,
+    withdraw: handleWithdrawAction,
+    isPending: lendingPool.isPending,
     isConfirmed: false,
-    error: null,
+    error: lendingPool.error,
   };
 
   const createLoan = {
-    write: () => {
-      toast.success("Loan creation transaction submitted!");
-      setBorrowAmount("");
-      setCollateralAmount("");
-    },
-    isLoading: false,
+    createLoan: handleBorrowAction,
+    isPending: lendingPool.isPending,
+    isConfirmed: false,
+    error: lendingPool.error,
   };
 
   const repayLoan = {
-    write: () => {
-      toast.success("Loan repayment transaction submitted!");
-      setRepayAmount("");
-      setSelectedLoanId("");
-    },
-    isLoading: false,
+    repayLoan: handleRepayAction,
+    isPending: lendingPool.isPending,
+    isConfirmed: false,
+    error: lendingPool.error,
   };
 
-  // Mock deposit data
-  const goldDeposits = { data: BigInt("1000000000000000000000"), isLoading: false };
-  const silverDeposits = { data: BigInt("500000000000000000000"), isLoading: false };
-  const realEstateDeposits = { data: BigInt("2000000000000000000000"), isLoading: false };
+  // Get user account
+  const { address: userAddress } = useAccount();
 
-  // Mock token data
-  const tokenAllowance = { data: BigInt("0"), isLoading: false };
+  // Real total deposit data from LendingPool contract (across all users)
+  const goldReserveDeposits = lendingPool.useGetTotalDeposited(
+    RWA_TOKEN_ADDRESSES.GOLD_RESERVE
+  );
+  const premiumRealEstateDeposits = lendingPool.useGetTotalDeposited(
+    RWA_TOKEN_ADDRESSES.PREMIUM_REAL_ESTATE
+  );
+  const digitalArtDeposits = lendingPool.useGetTotalDeposited(
+    RWA_TOKEN_ADDRESSES.DIGITAL_ART
+  );
+  const renewableEnergyDeposits = lendingPool.useGetTotalDeposited(
+    RWA_TOKEN_ADDRESSES.RENEWABLE_ENERGY
+  );
+
+  // User-specific deposit data for individual positions
+  const userGoldReserveDeposits = lendingPool.useGetLendingPosition(
+    userAddress || "0x0",
+    RWA_TOKEN_ADDRESSES.GOLD_RESERVE
+  );
+  const userPremiumRealEstateDeposits = lendingPool.useGetLendingPosition(
+    userAddress || "0x0",
+    RWA_TOKEN_ADDRESSES.PREMIUM_REAL_ESTATE
+  );
+  const userDigitalArtDeposits = lendingPool.useGetLendingPosition(
+    userAddress || "0x0",
+    RWA_TOKEN_ADDRESSES.DIGITAL_ART
+  );
+  const userRenewableEnergyDeposits = lendingPool.useGetLendingPosition(
+    userAddress || "0x0",
+    RWA_TOKEN_ADDRESSES.RENEWABLE_ENERGY
+  );
+
+  // Total borrowed amounts for each asset
+  const goldReserveBorrowed = lendingPool.useGetTotalBorrowedAmount(
+    RWA_TOKEN_ADDRESSES.GOLD_RESERVE
+  );
+  const premiumRealEstateBorrowed = lendingPool.useGetTotalBorrowedAmount(
+    RWA_TOKEN_ADDRESSES.PREMIUM_REAL_ESTATE
+  );
+  const digitalArtBorrowed = lendingPool.useGetTotalBorrowedAmount(
+    RWA_TOKEN_ADDRESSES.DIGITAL_ART
+  );
+  const renewableEnergyBorrowed = lendingPool.useGetTotalBorrowedAmount(
+    RWA_TOKEN_ADDRESSES.RENEWABLE_ENERGY
+  );
+
+  // Available to borrow amounts for each asset
+  const goldReserveAvailable = lendingPool.useGetAvailableToBorrow(
+    RWA_TOKEN_ADDRESSES.GOLD_RESERVE
+  );
+  const premiumRealEstateAvailable = lendingPool.useGetAvailableToBorrow(
+    RWA_TOKEN_ADDRESSES.PREMIUM_REAL_ESTATE
+  );
+  const digitalArtAvailable = lendingPool.useGetAvailableToBorrow(
+    RWA_TOKEN_ADDRESSES.DIGITAL_ART
+  );
+  const renewableEnergyAvailable = lendingPool.useGetAvailableToBorrow(
+    RWA_TOKEN_ADDRESSES.RENEWABLE_ENERGY
+  );
+
+  // Pool statistics for each asset (includes utilization rates)
+  const goldReserveStats = lendingPool.useGetPoolStats(
+    RWA_TOKEN_ADDRESSES.GOLD_RESERVE
+  );
+  const premiumRealEstateStats = lendingPool.useGetPoolStats(
+    RWA_TOKEN_ADDRESSES.PREMIUM_REAL_ESTATE
+  );
+  const digitalArtStats = lendingPool.useGetPoolStats(
+    RWA_TOKEN_ADDRESSES.DIGITAL_ART
+  );
+  const renewableEnergyStats = lendingPool.useGetPoolStats(
+    RWA_TOKEN_ADDRESSES.RENEWABLE_ENERGY
+  );
+
+  // Real token data using ERC20 hooks
+  const selectedTokenERC20 = useERC20(selectedToken);
+  const tokenBalance = selectedTokenERC20.useBalance(userAddress || "0x0");
+  const tokenAllowance = selectedTokenERC20.useAllowance(
+    userAddress || "0x0",
+    CONTRACTS.LendingPool
+  );
   const tokenApproval = {
-    write: () => {
+    approve: (spender: Address, amount: bigint) => {
+      selectedTokenERC20.approve(spender, amount);
       toast.success("Token approval submitted!");
-      setIsApprovalInProgress(false);
+      // Don't set isApprovalInProgress to false here - let useEffect handle it
     },
-    isLoading: false,
+    isPending: selectedTokenERC20.isPending,
+    isLoading: selectedTokenERC20.isPending,
   };
-  const tokenBalance = { data: BigInt("10000000000000000000000"), isLoading: false };
 
-  // Mock collateral data
-  const collateralAllowance = { data: BigInt("0"), isLoading: false };
+  // Real collateral data using ERC20 hooks
+  const selectedCollateralERC20 = useERC20(selectedCollateralToken);
+  const collateralBalance = selectedCollateralERC20.useBalance(
+    userAddress || "0x0"
+  );
+  const collateralAllowance = selectedCollateralERC20.useAllowance(
+    userAddress || "0x0",
+    CONTRACTS.LendingPool
+  );
   const collateralApproval = {
-    write: () => {
+    approve: (spender: Address, amount: bigint) => {
+      selectedCollateralERC20.approve(spender, amount);
       toast.success("Collateral approval submitted!");
-      setIsCollateralApprovalInProgress(false);
+      // Don't set isCollateralApprovalInProgress to false here - let useEffect handle it
     },
-    isLoading: false,
+    isPending: selectedCollateralERC20.isPending,
+    isLoading: selectedCollateralERC20.isPending,
   };
 
   // Calculate total deposits across all tokens
   const calculateTotalDeposits = () => {
-    // Convert BigInt to number (mock data is in wei, so divide by 10^18)
-    const gold = goldDeposits.data ? Number(goldDeposits.data) / 1e18 : 0;
-    const silver = silverDeposits.data ? Number(silverDeposits.data) / 1e18 : 0;
-    const realEstate = realEstateDeposits.data ? Number(realEstateDeposits.data) / 1e18 : 0;
-    return gold + silver + realEstate;
+    // Convert BigInt to number (data is in wei, so divide by 10^18)
+    const goldReserve = goldReserveDeposits.data
+      ? Number(goldReserveDeposits.data) / 1e18
+      : 0;
+    const premiumRealEstate = premiumRealEstateDeposits.data
+      ? Number(premiumRealEstateDeposits.data) / 1e18
+      : 0;
+    const digitalArt = digitalArtDeposits.data
+      ? Number(digitalArtDeposits.data) / 1e18
+      : 0;
+    const renewableEnergy = renewableEnergyDeposits.data
+      ? Number(renewableEnergyDeposits.data) / 1e18
+      : 0;
+
+    return goldReserve + premiumRealEstate + digitalArt + renewableEnergy;
   };
 
+  // Calculate total deposits and loading state
   const totalDeposits = calculateTotalDeposits();
   const isLoadingDeposits =
-    goldDeposits.isLoading ||
-    silverDeposits.isLoading ||
-    realEstateDeposits.isLoading;
+    goldReserveDeposits.isLoading ||
+    premiumRealEstateDeposits.isLoading ||
+    digitalArtDeposits.isLoading ||
+    renewableEnergyDeposits.isLoading;
 
-  // Handle deposit success/error
+  // Handle deposit success/error - removed as we handle this in the action functions
+
+  // Transaction success/error handling is now done in the action functions
+
+  // Handle token approval success and auto-trigger deposit
   useEffect(() => {
-    console.log(
-      "Deposit useEffect triggered - isConfirmed:",
-      deposit.isConfirmed,
-      "error:",
-      deposit.error,
-      "pendingAmount:",
+    if (
+      !selectedTokenERC20.isPending &&
+      isApprovalInProgress &&
       pendingDepositAmountRef.current
-    );
-    if (deposit.isConfirmed) {
-      // Clear the refs and show success message (local storage already updated when transaction was submitted)
-      if (pendingDepositAmountRef.current) {
-        console.log("Deposit confirmed! Transaction successful.");
-
-        // Clear the refs and show success message
-        pendingDepositAmountRef.current = "";
-        pendingDepositTokenRef.current = RWA_TOKEN_ADDRESSES.GOLD; // Reset to default
-        toast.success("Deposit successful! Your balance has been updated.");
-      } else {
-        console.log("Deposit confirmed but no pending amount in ref!");
-      }
-    }
-    if (deposit.error) {
-      console.log("Deposit error:", deposit.error.message);
-      toast.error(`Deposit failed: ${deposit.error.message}`);
-      pendingDepositAmountRef.current = ""; // Clear on error
-      pendingDepositTokenRef.current = RWA_TOKEN_ADDRESSES.GOLD; // Reset to default
-    }
-  }, [deposit.isConfirmed, deposit.error, selectedToken]);
-
-  // Handle withdraw success/error
-  useEffect(() => {
-    if (withdraw.isConfirmed) {
-      // Subtract withdrawn amount from local storage
-      if (pendingWithdrawAmountRef.current) {
-        const amount = parseFloat(pendingWithdrawAmountRef.current);
-        const tokenUsed = pendingWithdrawTokenRef.current;
-        subtractFromTokenLent(tokenUsed, amount);
-        console.log(
-          "Subtracted from token lent:",
-          amount,
-          "for token:",
-          tokenUsed,
-          "New total:",
-          getTotalLentFromStorage()
-        );
-        pendingWithdrawAmountRef.current = ""; // Clear the refs
-        pendingWithdrawTokenRef.current = RWA_TOKEN_ADDRESSES.GOLD; // Reset to default
-      }
-      toast.success("Withdrawal successful!");
-      setWithdrawAmount("");
-    }
-    if (withdraw.error) {
-      toast.error(`Withdrawal failed: ${withdraw.error.message}`);
-      pendingWithdrawAmountRef.current = ""; // Clear the refs on error too
-      pendingWithdrawTokenRef.current = RWA_TOKEN_ADDRESSES.GOLD; // Reset to default
-    }
-  }, [withdraw.isConfirmed, withdraw.error]);
-
-  // Handle loan creation success/error
-  useEffect(() => {
-    if (createLoan.isConfirmed) {
-      toast.success("Loan created successfully!");
-      setBorrowAmount("");
-      setCollateralAmount("");
-    }
-    if (createLoan.error) {
-      toast.error(`Loan creation failed: ${createLoan.error.message}`);
-    }
-  }, [createLoan.isConfirmed, createLoan.error]);
-
-  // Handle loan repayment success/error
-  useEffect(() => {
-    if (repayLoan.isConfirmed) {
-      toast.success("Loan repayment successful!");
-      setRepayAmount("");
-    }
-    if (repayLoan.error) {
-      toast.error(`Loan repayment failed: ${repayLoan.error.message}`);
-    }
-  }, [repayLoan.isConfirmed, repayLoan.error]);
-
-  // Handle token approval success/error and auto-trigger deposit
-  useEffect(() => {
-    if (tokenApproval.isConfirmed && isApprovalInProgress) {
-      toast.success("Token approval successful! You can now deposit.");
-      setIsApprovalInProgress(false);
-      // Auto-trigger deposit after successful approval
-      if (pendingDepositAmountRef.current) {
+    ) {
+      // Check if approval was successful by checking allowance
+      const checkAllowanceAndDeposit = async () => {
         try {
           const amount = parseEther(pendingDepositAmountRef.current);
-          const tokenToUse = pendingDepositTokenRef.current;
-          console.log(
-            "Auto-triggering deposit with amount from ref:",
-            pendingDepositAmountRef.current,
-            "for token:",
-            tokenToUse
-          );
-          deposit.deposit(tokenToUse, amount);
+          const currentAllowance = tokenAllowance.data || BigInt(0);
 
-          toast.success("deposit successful.");
+          if (currentAllowance >= amount) {
+            toast.success("Token approval successful! Executing deposit...");
+            setIsApprovalInProgress(false);
 
-          // Update local storage after 3 second delay
-          setTimeout(() => {
-            const depositAmountValue = parseFloat(
-              pendingDepositAmountRef.current
-            );
-            console.log(
-              "Updating local storage after 3s delay with amount:",
-              depositAmountValue,
-              "for token:",
-              tokenToUse
-            );
-            addToTokenLent(tokenToUse, depositAmountValue);
-            console.log(
-              "Local storage updated after delay. New total:",
-              getTotalLentFromStorage()
-            );
-          }, 3000);
-          setDepositAmount("");
+            // Auto-trigger deposit after successful approval
+            lendingPool.deposit(pendingDepositTokenRef.current, amount);
+            toast.info("Deposit transaction submitted...");
+
+            // Clear pending refs
+            pendingDepositAmountRef.current = "";
+            setDepositAmount("");
+          }
         } catch (error) {
-          toast.error("Invalid amount");
-          pendingDepositAmountRef.current = ""; // Clear on error
-          pendingDepositTokenRef.current = RWA_TOKEN_ADDRESSES.GOLD; // Reset to default
+          console.error(
+            "Error checking allowance or executing deposit:",
+            error
+          );
+          setIsApprovalInProgress(false);
         }
-      } else {
-        console.log(
-          "No pending deposit amount found in ref during approval success!"
-        );
-      }
-    }
-    if (tokenApproval.error && isApprovalInProgress) {
-      toast.error(`Token approval failed: ${tokenApproval.error.message}`);
-      setIsApprovalInProgress(false);
-      pendingDepositAmountRef.current = ""; // Clear on error
-      pendingDepositTokenRef.current = RWA_TOKEN_ADDRESSES.GOLD; // Reset to default
+      };
+
+      // Small delay to ensure allowance is updated
+      setTimeout(checkAllowanceAndDeposit, 1000);
     }
   }, [
-    tokenApproval.isConfirmed,
-    tokenApproval.error,
+    selectedTokenERC20.isPending,
     isApprovalInProgress,
-    selectedToken,
-    deposit,
+    tokenAllowance.data,
+    lendingPool,
+    pendingDepositAmountRef,
+    pendingDepositTokenRef,
   ]);
 
-  // Handle collateral approval success/error and auto-trigger loan creation
+  // Handle collateral approval success and auto-trigger loan creation
   useEffect(() => {
-    if (collateralApproval.isConfirmed && isCollateralApprovalInProgress) {
-      toast.success(
-        "Collateral approval successful! You can now create a loan."
-      );
-      setIsCollateralApprovalInProgress(false);
-      // Auto-trigger loan creation after successful approval
-      if (collateralAmount && borrowAmount) {
+    if (
+      !selectedCollateralERC20.isPending &&
+      isCollateralApprovalInProgress &&
+      collateralAmount &&
+      borrowAmount
+    ) {
+      // Check if approval was successful by checking allowance
+      const checkAllowanceAndCreateLoan = async () => {
         try {
           const collateralAmountBigInt = parseEther(collateralAmount);
           const borrowAmountBigInt = parseEther(borrowAmount);
-          createLoan.createLoan(
-            selectedCollateralToken,
-            selectedBorrowToken,
-            collateralAmountBigInt,
-            borrowAmountBigInt
-          );
+          const currentAllowance = collateralAllowance.data || BigInt(0);
+
+          if (currentAllowance >= collateralAmountBigInt) {
+            toast.success("Collateral approval successful! Creating loan...");
+            setIsCollateralApprovalInProgress(false);
+
+            // Auto-trigger loan creation after successful approval
+            lendingPool.borrowWithCollateral(
+              selectedBorrowToken,
+              borrowAmountBigInt,
+              selectedCollateralToken,
+              collateralAmountBigInt
+            );
+            toast.info("Loan creation transaction submitted...");
+
+            // Clear form
+            setBorrowAmount("");
+            setCollateralAmount("");
+          }
         } catch (error) {
-          toast.error("Invalid amounts");
+          console.error("Error checking allowance or creating loan:", error);
+          setIsCollateralApprovalInProgress(false);
         }
-      }
-    }
-    if (collateralApproval.error && isCollateralApprovalInProgress) {
-      toast.error(
-        `Collateral approval failed: ${collateralApproval.error.message}`
-      );
-      setIsCollateralApprovalInProgress(false);
+      };
+
+      // Small delay to ensure allowance is updated
+      setTimeout(checkAllowanceAndCreateLoan, 1000);
     }
   }, [
-    collateralApproval.isConfirmed,
-    collateralApproval.error,
+    selectedCollateralERC20.isPending,
     isCollateralApprovalInProgress,
+    collateralAllowance.data,
+    lendingPool,
     collateralAmount,
     borrowAmount,
-    selectedCollateralToken,
     selectedBorrowToken,
-    createLoan,
+    selectedCollateralToken,
   ]);
 
   // Handler functions
@@ -540,21 +422,11 @@ export function BlendTab() {
       // Store the deposit amount and token in ref for later use in success handler
       pendingDepositAmountRef.current = depositAmount;
       pendingDepositTokenRef.current = selectedToken;
-      console.log(
-        "handleDeposit: Stored deposit amount in ref:",
-        depositAmount,
-        "for token:",
-        selectedToken
-      );
-      console.log("handleDeposit: Token addresses for reference:");
-      console.log("GOLD:", RWA_TOKEN_ADDRESSES.GOLD);
-      console.log("SILVER:", RWA_TOKEN_ADDRESSES.SILVER);
-      console.log("REAL_ESTATE:", RWA_TOKEN_ADDRESSES.REAL_ESTATE);
 
       // Always trigger approval first to ensure two-step process
       // This will show approval popup first, then auto-trigger deposit
       setIsApprovalInProgress(true);
-      tokenApproval.approve(CONTRACT_ADDRESSES.LendingPool, amount);
+      tokenApproval.approve(CONTRACTS.LendingPool, amount);
     } catch (error) {
       toast.error("Invalid amount");
       setIsApprovalInProgress(false);
@@ -573,7 +445,7 @@ export function BlendTab() {
       pendingWithdrawAmountRef.current = withdrawAmount;
       pendingWithdrawTokenRef.current = selectedToken;
 
-      withdraw.withdraw(selectedToken, amount);
+      lendingPool.withdraw(selectedToken, amount);
       toast.info("Withdrawal transaction submitted...");
     } catch (error) {
       toast.error("Invalid amount");
@@ -599,10 +471,7 @@ export function BlendTab() {
       // Always trigger approval first to ensure two-step process
       // This will show approval popup first, then auto-trigger loan creation
       setIsCollateralApprovalInProgress(true);
-      collateralApproval.approve(
-        CONTRACT_ADDRESSES.LendingPool,
-        collateralAmountBigInt
-      );
+      collateralApproval.approve(CONTRACTS.LendingPool, collateralAmountBigInt);
     } catch (error) {
       toast.error("Invalid amounts");
       setIsCollateralApprovalInProgress(false);
@@ -617,7 +486,7 @@ export function BlendTab() {
     try {
       const amount = parseEther(repayAmount);
       const loanId = BigInt(selectedLoanId);
-      repayLoan.repayLoan(loanId, amount);
+      lendingPool.repay(selectedToken, amount); // Note: Using selectedToken as asset for repayment
       toast.info("Loan repayment transaction submitted...");
     } catch (error) {
       toast.error("Invalid amount or loan ID");
@@ -626,21 +495,13 @@ export function BlendTab() {
 
   const lendingOpportunities = [
     {
-      asset: "Real Estate Token",
-      symbol: "RET",
-      apy: "8.5%",
-      totalLent: `$${realEstateLentAmount.toLocaleString("en-US", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      })}`,
-      available: "$2.5M",
-      risk: "Low",
-    },
-    {
-      asset: "Gold Commodity",
-      symbol: "GOLD",
+      asset: "Gold Reserve Token",
+      symbol: "GRT",
       apy: "6.2%",
-      totalLent: `$${goldLentAmount.toLocaleString("en-US", {
+      totalLent: `$${(goldReserveDeposits.data
+        ? Number(goldReserveDeposits.data) / 1e18
+        : 0
+      ).toLocaleString("en-US", {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       })}`,
@@ -648,34 +509,145 @@ export function BlendTab() {
       risk: "Low",
     },
     {
-      asset: "Invoice Token",
-      symbol: "INV",
+      asset: "Premium Real Estate Token",
+      symbol: "PRET",
+      apy: "8.5%",
+      totalLent: `$${(premiumRealEstateDeposits.data
+        ? Number(premiumRealEstateDeposits.data) / 1e18
+        : 0
+      ).toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`,
+      available: "$2.5M",
+      risk: "Low",
+    },
+    {
+      asset: "Digital Art Token",
+      symbol: "DAT",
       apy: "12.3%",
-      totalLent: `$${invoiceLentAmount.toLocaleString("en-US", {
+      totalLent: `$${(digitalArtDeposits.data
+        ? Number(digitalArtDeposits.data) / 1e18
+        : 0
+      ).toLocaleString("en-US", {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       })}`,
       available: "$850K",
       risk: "Medium",
     },
+    {
+      asset: "Renewable Energy Credits",
+      symbol: "REC",
+      apy: "9.8%",
+      totalLent: `$${(renewableEnergyDeposits.data
+        ? Number(renewableEnergyDeposits.data) / 1e18
+        : 0
+      ).toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`,
+      available: "$1.2M",
+      risk: "Medium",
+    },
   ];
 
   const borrowingOptions = [
     {
-      asset: "USDC",
-      collateral: "Real Estate Token",
+      asset: "Gold Reserve Token",
+      symbol: "GRT",
+      collateral: "Premium Real Estate Token",
       ltv: "75%",
-      interestRate: "5.8%",
-      borrowed: "$93,750",
-      available: "$31,250",
+      interestRate: "6.2%",
+      borrowed: `$${(goldReserveBorrowed.data
+        ? Number(goldReserveBorrowed.data) / 1e18
+        : 0
+      ).toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`,
+      available: `$${(goldReserveAvailable.data
+        ? Number(goldReserveAvailable.data) / 1e18
+        : 0
+      ).toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`,
+      utilizationRate: goldReserveStats.data && Array.isArray(goldReserveStats.data) && goldReserveStats.data.length > 3
+        ? `${(Number(goldReserveStats.data[3]) / 100).toFixed(1)}%`
+        : "0.0%",
     },
     {
-      asset: "HBAR",
-      collateral: "Gold Commodity",
+      asset: "Premium Real Estate Token",
+      symbol: "PRET",
+      collateral: "Gold Reserve Token",
       ltv: "70%",
-      interestRate: "7.2%",
-      borrowed: "$66,675",
-      available: "$28,575",
+      interestRate: "8.5%",
+      borrowed: `$${(premiumRealEstateBorrowed.data
+        ? Number(premiumRealEstateBorrowed.data) / 1e18
+        : 0
+      ).toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`,
+      available: `$${(premiumRealEstateAvailable.data
+        ? Number(premiumRealEstateAvailable.data) / 1e18
+        : 0
+      ).toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`,
+      utilizationRate: premiumRealEstateStats.data && Array.isArray(premiumRealEstateStats.data) && premiumRealEstateStats.data.length > 3
+        ? `${(Number(premiumRealEstateStats.data[3]) / 100).toFixed(1)}%`
+        : "0.0%",
+    },
+    {
+      asset: "Digital Art Token",
+      symbol: "DAT",
+      collateral: "Renewable Energy Credits",
+      ltv: "65%",
+      interestRate: "12.3%",
+      borrowed: `$${(digitalArtBorrowed.data
+        ? Number(digitalArtBorrowed.data) / 1e18
+        : 0
+      ).toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`,
+      available: `$${(digitalArtAvailable.data
+        ? Number(digitalArtAvailable.data) / 1e18
+        : 0
+      ).toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`,
+      utilizationRate: digitalArtStats.data && Array.isArray(digitalArtStats.data) && digitalArtStats.data.length > 3
+        ? `${(Number(digitalArtStats.data[3]) / 100).toFixed(1)}%`
+        : "0.0%",
+    },
+    {
+      asset: "Renewable Energy Credits",
+      symbol: "REC",
+      collateral: "Digital Art Token",
+      ltv: "68%",
+      interestRate: "9.8%",
+      borrowed: `$${(renewableEnergyBorrowed.data
+        ? Number(renewableEnergyBorrowed.data) / 1e18
+        : 0
+      ).toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`,
+      available: `$${(renewableEnergyAvailable.data
+        ? Number(renewableEnergyAvailable.data) / 1e18
+        : 0
+      ).toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`,
+      utilizationRate: renewableEnergyStats.data && Array.isArray(renewableEnergyStats.data) && renewableEnergyStats.data.length > 3
+        ? `${(Number(renewableEnergyStats.data[3]) / 100).toFixed(1)}%`
+        : "0.0%",
     },
   ];
 
@@ -712,11 +684,12 @@ export function BlendTab() {
         <div className="p-4 rounded-lg bg-gray-900/70 text-center">
           <p className="text-gray-400 text-sm">Total Lent</p>
           <p className="text-2xl font-bold text-green-400">
-            $
-            {totalLentAmount.toLocaleString("en-US", {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}
+            {isLoadingDeposits
+              ? "Loading..."
+              : `$${totalDeposits.toLocaleString("en-US", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}`}
           </p>
         </div>
         <div className="p-4 rounded-lg bg-gray-900/70 text-center">
@@ -825,14 +798,17 @@ export function BlendTab() {
                   onChange={(e) => setSelectedToken(e.target.value as Address)}
                   className="w-full bg-gray-800 border border-gray-600 text-white rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
                 >
-                  <option value={RWA_TOKEN_ADDRESSES.GOLD}>
-                    GOLD Token (HVGLD)
+                  <option value={RWA_TOKEN_ADDRESSES.GOLD_RESERVE}>
+                    Gold Reserve Token (GRT)
                   </option>
-                  <option value={RWA_TOKEN_ADDRESSES.SILVER}>
-                    SILVER Token (HVSILV)
+                  <option value={RWA_TOKEN_ADDRESSES.PREMIUM_REAL_ESTATE}>
+                    Premium Real Estate Token (PRET)
                   </option>
-                  <option value={RWA_TOKEN_ADDRESSES.REAL_ESTATE}>
-                    REAL ESTATE Token (HVRE)
+                  <option value={RWA_TOKEN_ADDRESSES.DIGITAL_ART}>
+                    Digital Art Token (DAT)
+                  </option>
+                  <option value={RWA_TOKEN_ADDRESSES.RENEWABLE_ENERGY}>
+                    Renewable Energy Credits (REC)
                   </option>
                 </select>
               </div>
@@ -864,20 +840,56 @@ export function BlendTab() {
     </div>
   );
 
+  // Calculate total borrowed and available amounts
+  const calculateTotalBorrowed = () => {
+    const goldReserve = goldReserveBorrowed.data ? Number(goldReserveBorrowed.data) / 1e18 : 0;
+    const premiumRealEstate = premiumRealEstateBorrowed.data ? Number(premiumRealEstateBorrowed.data) / 1e18 : 0;
+    const digitalArt = digitalArtBorrowed.data ? Number(digitalArtBorrowed.data) / 1e18 : 0;
+    const renewableEnergy = renewableEnergyBorrowed.data ? Number(renewableEnergyBorrowed.data) / 1e18 : 0;
+    return goldReserve + premiumRealEstate + digitalArt + renewableEnergy;
+  };
+
+  const calculateTotalAvailable = () => {
+    const goldReserve = goldReserveAvailable.data ? Number(goldReserveAvailable.data) / 1e18 : 0;
+    const premiumRealEstate = premiumRealEstateAvailable.data ? Number(premiumRealEstateAvailable.data) / 1e18 : 0;
+    const digitalArt = digitalArtAvailable.data ? Number(digitalArtAvailable.data) / 1e18 : 0;
+    const renewableEnergy = renewableEnergyAvailable.data ? Number(renewableEnergyAvailable.data) / 1e18 : 0;
+    return goldReserve + premiumRealEstate + digitalArt + renewableEnergy;
+  };
+
+  const totalBorrowed = calculateTotalBorrowed();
+  const totalAvailable = calculateTotalAvailable();
+  const isLoadingBorrowing = goldReserveBorrowed.isLoading || premiumRealEstateBorrowed.isLoading || digitalArtBorrowed.isLoading || renewableEnergyBorrowed.isLoading;
+
   const renderBorrowingContent = () => (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="p-4 rounded-lg bg-gray-900/70 text-center">
           <p className="text-gray-400 text-sm">Total Borrowed</p>
-          <p className="text-2xl font-bold text-blue-400">$160,425</p>
+          <p className="text-2xl font-bold text-blue-400">
+            {isLoadingBorrowing
+              ? "Loading..."
+              : `$${totalBorrowed.toLocaleString("en-US", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}`}
+          </p>
         </div>
         <div className="p-4 rounded-lg bg-gray-900/70 text-center">
           <p className="text-gray-400 text-sm">Available to Borrow</p>
-          <p className="text-2xl font-bold text-white">$59,825</p>
+          <p className="text-2xl font-bold text-white">
+            {isLoadingBorrowing
+              ? "Loading..."
+              : `$${totalAvailable.toLocaleString("en-US", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}`}
+          </p>
         </div>
         <div className="p-4 rounded-lg bg-gray-900/70 text-center">
           <p className="text-gray-400 text-sm">Health Factor</p>
           <p className="text-2xl font-bold text-green-400">2.1</p>
+          <p className="text-gray-400 text-xs mt-1">Coming Soon</p>
         </div>
       </div>
 
@@ -916,6 +928,10 @@ export function BlendTab() {
               <div>
                 <p className="text-gray-400 text-xs">Max LTV</p>
                 <p className="text-white font-medium">{option.ltv}</p>
+              </div>
+              <div>
+                <p className="text-gray-400 text-xs">Utilization Rate</p>
+                <p className="text-white font-medium">{option.utilizationRate}</p>
               </div>
             </div>
 
@@ -969,14 +985,17 @@ export function BlendTab() {
                     }
                     className="w-full bg-gray-800 border border-gray-600 text-white rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
                   >
-                    <option value={RWA_TOKEN_ADDRESSES.GOLD}>
-                      GOLD Token (HVGLD)
+                    <option value={RWA_TOKEN_ADDRESSES.GOLD_RESERVE}>
+                      Gold Reserve Token (GRT)
                     </option>
-                    <option value={RWA_TOKEN_ADDRESSES.SILVER}>
-                      SILVER Token (HVSILV)
+                    <option value={RWA_TOKEN_ADDRESSES.PREMIUM_REAL_ESTATE}>
+                      Premium Real Estate Token (PRET)
                     </option>
-                    <option value={RWA_TOKEN_ADDRESSES.REAL_ESTATE}>
-                      REAL ESTATE Token (HVRE)
+                    <option value={RWA_TOKEN_ADDRESSES.DIGITAL_ART}>
+                      Digital Art Token (DAT)
+                    </option>
+                    <option value={RWA_TOKEN_ADDRESSES.RENEWABLE_ENERGY}>
+                      Renewable Energy Credits (REC)
                     </option>
                   </select>
                 </div>
@@ -994,14 +1013,17 @@ export function BlendTab() {
                     }
                     className="w-full bg-gray-800 border border-gray-600 text-white rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
                   >
-                    <option value={RWA_TOKEN_ADDRESSES.GOLD}>
-                      GOLD Token (HVGLD)
+                    <option value={RWA_TOKEN_ADDRESSES.GOLD_RESERVE}>
+                      Gold Reserve Token (GRT)
                     </option>
-                    <option value={RWA_TOKEN_ADDRESSES.SILVER}>
-                      SILVER Token (HVSILV)
+                    <option value={RWA_TOKEN_ADDRESSES.PREMIUM_REAL_ESTATE}>
+                      Premium Real Estate Token (PRET)
                     </option>
-                    <option value={RWA_TOKEN_ADDRESSES.REAL_ESTATE}>
-                      REAL ESTATE Token (HVRE)
+                    <option value={RWA_TOKEN_ADDRESSES.DIGITAL_ART}>
+                      Digital Art Token (DAT)
+                    </option>
+                    <option value={RWA_TOKEN_ADDRESSES.RENEWABLE_ENERGY}>
+                      Renewable Energy Credits (REC)
                     </option>
                   </select>
                 </div>

@@ -759,6 +759,92 @@ contract LendingPool is ILendingPool, Ownable, ReentrancyGuard, Pausable {
         return (collateralValue * BASIS_POINTS) / borrowValue;
     }
 
+    /**
+     * @notice Get total amount deposited (lent) for an asset
+     * @param asset Asset address
+     * @return Total deposited amount
+     */
+    function getTotalDeposited(
+        address asset
+    ) external view supportedAsset(asset) returns (uint256) {
+        return totalDeposits[asset];
+    }
+
+    /**
+     * @notice Get total amount borrowed for an asset
+     * @param asset Asset address
+     * @return Total borrowed amount
+     */
+    function getTotalBorrowedAmount(
+        address asset
+    ) external view supportedAsset(asset) returns (uint256) {
+        return totalBorrows[asset];
+    }
+
+    /**
+     * @notice Get available amount that can be borrowed for an asset
+     * @param asset Asset address
+     * @return Available amount to borrow
+     */
+    function getAvailableToBorrow(
+        address asset
+    ) external view supportedAsset(asset) returns (uint256) {
+        return _getAvailableLiquidity(asset);
+    }
+
+    /**
+     * @notice Get pool statistics for an asset
+     * @param asset Asset address
+     * @return totalDeposited Total amount deposited in the pool
+     * @return totalBorrowed Total amount borrowed from the pool
+     * @return availableToBorrow Available amount that can be borrowed
+     * @return utilizationRate Current utilization rate in basis points
+     * @return currentInterestRate Current interest rate in basis points
+     */
+    function getPoolStats(
+        address asset
+    ) external view supportedAsset(asset) returns (
+        uint256 totalDeposited,
+        uint256 totalBorrowed,
+        uint256 availableToBorrow,
+        uint256 utilizationRate,
+        uint256 currentInterestRate
+    ) {
+        totalDeposited = totalDeposits[asset];
+        totalBorrowed = totalBorrows[asset];
+        availableToBorrow = _getAvailableLiquidity(asset);
+        
+        if (totalDeposited > 0) {
+            utilizationRate = (totalBorrowed * BASIS_POINTS) / totalDeposited;
+        } else {
+            utilizationRate = 0;
+        }
+        
+        currentInterestRate = calculateInterestRate(asset);
+    }
+
+    /**
+     * @notice Get maximum borrowable amount for a user based on their collateral
+     * @param user User address
+     * @param asset Asset to borrow
+     * @return Maximum borrowable amount
+     */
+    function getMaxBorrowableAmount(
+        address user,
+        address asset
+    ) external view supportedAsset(asset) returns (uint256) {
+        uint256 maxBorrowValue = (_getUserCollateralValue(user) * BASIS_POINTS) / (MIN_HEALTH_FACTOR / 1e14);
+        
+        if (maxBorrowValue <= _getUserTotalBorrowValue(user)) {
+            return 0;
+        }
+        
+        uint256 maxAmount = _getAssetAmount(asset, maxBorrowValue - _getUserTotalBorrowValue(user));
+        uint256 available = _getAvailableLiquidity(asset);
+        
+        return maxAmount > available ? available : maxAmount;
+    }
+
     // Internal functions
 
     function _updateInterest(address asset) internal {

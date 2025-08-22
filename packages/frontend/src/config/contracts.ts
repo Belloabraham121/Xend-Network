@@ -13,7 +13,7 @@ export const CONTRACTS = {
   RewardAssetFactory: "0xae4e89df546994bde296bc2cc2d949961cb7a123" as const,
   PortfolioManager: "0x3Ea5f30Bf62f0ADB515760055E49c30B987Bd079" as const,
   RewardsDistributor: "0x569ba5be4384466f361f01f16c4918305f598456" as const,
-  LendingPool: "0x415145771e2e065b689465ea8baa1952f930e461" as const,
+  LendingPool: "0xFeE2CC90da44D83A4C1426d67EdD0F3b03d0204e" as const,
   StrategyVault: "0x6d6a568fc9c5cb2e29ef037114437befdb6c85fb" as const,
   AssetMarketplace: "0xf23072b3a7d3050de55f94adc65e3931b26bec00" as const,
 } as const;

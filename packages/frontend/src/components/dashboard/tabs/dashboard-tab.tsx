@@ -3,9 +3,7 @@
 import { useState } from "react";
 import { Eye, EyeOff, TrendingUp, DollarSign, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PortfolioCard } from "../ui/portfolio-card";
-import { TransactionItem } from "../ui/transaction-item";
 import { PredefinedRWATokens } from "../ui/predefined-rwa-tokens";
 
 import { useAccount } from "wagmi";
