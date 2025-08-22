@@ -198,12 +198,17 @@ export function DashboardTab() {
 
   // Calculate total portfolio value from smart contract data
   const calculateUserPortfolioValue = () => {
+    // Return 0 if no wallet is connected
+    if (!userAddress) {
+      return 0;
+    }
+
     // Use smart contract portfolio value if available
     if (portfolioValue && userAddress && typeof portfolioValue === "bigint") {
       return Number(formatEther(portfolioValue));
     }
 
-    // Fallback to mock calculation for predefined tokens
+    // Fallback to mock calculation for predefined tokens when wallet is connected
     let totalValue = 0;
     const goldValue = goldBalance.data
       ? Number(formatEther(goldBalance.data)) * 2000
